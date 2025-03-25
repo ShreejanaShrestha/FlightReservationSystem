@@ -1,0 +1,61 @@
+# General
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userprefs
+*.swp
+*.swo
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet Packages
+*.nupkg
+.nuget/
+packages/
+
+# Local development
+appsettings.Development.json
+appsettings.Local.json
+
+# Compiled files
+*.dll
+*.pdb
+*.exe
+
+# Azure Functions
+*.azurefunctions
+
+# Rider IDE
+.idea/
+
+# VS Code
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# User-specific files
+*.rsuser
+
+# Library dependencies
+wwwroot/lib/
+
+# If using npm/webpack
+wwwroot/dist/
+node_modules/
