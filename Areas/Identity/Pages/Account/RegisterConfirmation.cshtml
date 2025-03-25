@@ -1,0 +1,26 @@
+﻿@page
+@* @model FlightReservationSystem.Areas.Identity.Pages.Account.RegisterConfirmationModel *@
+@model RegisterConfirmationModel
+@{
+    ViewData["Title"] = "Registration successful";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (Model.ShowFakeConfirmation)
+{
+    <div class="alert alert-success">
+        <p>Account created successfully!</p>
+        <p>For development purposes, click below to confirm your email:</p>
+        <a class="btn btn-primary" href="@Model.EmailConfirmationUrl">Confirm Email</a>
+        <hr>
+        <p>After confirmation, please <a href="/Identity/Account/Login">login here</a>.</p>
+    </div>
+}
+else
+{
+    <div class="alert alert-success">
+        <p>Account created successfully! Please check your email to confirm your account.</p>
+        <p>After confirmation, please <a href="/Identity/Account/Login">login here</a>.</p>
+    </div>
+}

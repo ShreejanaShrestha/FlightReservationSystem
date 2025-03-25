@@ -1,0 +1,23 @@
+﻿@page
+@model FlightReservationSystem.Areas.Identity.Pages.Account.ConfirmEmailModel
+@{
+    ViewData["Title"] = "Email Confirmation Status";
+}
+
+<div class="container mt-5">
+    @if (TempData["StatusMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["StatusMessage"]
+        </div>
+        <a class="btn btn-primary" asp-page="./Login">Proceed to Login</a>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+        <a class="btn btn-secondary" asp-page="./Register">Back to Registration</a>
+    }
+</div>
+

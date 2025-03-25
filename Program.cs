@@ -1,5 +1,6 @@
 using FlightReservationSystem.Data;
 using FlightReservationSystem.Models;
+using FlightReservationSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Principal;
@@ -20,6 +21,8 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddRoles<IdentityRole>() // enables role management
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddScoped<INameFormatter, NameFormattingService>();
 
 var app = builder.Build();
 

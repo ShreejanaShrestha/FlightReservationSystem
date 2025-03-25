@@ -28,12 +28,17 @@ An ASP.NET Core MVC web application for booking flights with user authentication
      ```bash
      dotnet ef database update
      ```
-4. Run the application:
+4. Restore libraries and tools
+    ```bash
+    dotnet tool restore
+    dotnet libman restore
+    ```
+5. Run the application:
    ```bash
    dotnet run
    ```
 
 ## Dependencies
 - ASP.NET Core 8.0
-- Entity Framework Core 8.0
-- Bootstrap 5.3
+- Entity Framework Core 8.0.4
+- Bootstrap 5.1

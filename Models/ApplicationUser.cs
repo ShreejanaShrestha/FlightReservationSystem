@@ -5,6 +5,8 @@ namespace FlightReservationSystem.Models
 {
     public class ApplicationUser : IdentityUser
     {
+        public ApplicationUser() { }
+
         [Required, MaxLength(50)]
         public string FirstName { get; set; }
 
