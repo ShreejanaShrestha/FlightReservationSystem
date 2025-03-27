@@ -20,6 +20,15 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
   </ItemGroup>
 
+  <ItemGroup>
+  <DotNetCliToolReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.0" />
+  </ItemGroup>
+
+  <Target Name="EnsureEFTools" BeforeTargets="Build">
+    <Exec Command="dotnet tool install --local dotnet-ef" 
+        Condition="!Exists('.config/dotnet-tools.json') OR !$([System.IO.File]::ReadAllText('.config/dotnet-tools.json').Contains('dotnet-ef'))" />
+  </Target>	
+	
   <Target Name="RestoreClientLibs" BeforeTargets="Build">
     <Exec Command="dotnet tool restore" />
     <Exec Command="libman restore" />
