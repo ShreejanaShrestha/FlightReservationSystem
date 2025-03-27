@@ -27,6 +27,6 @@
 	
   <Target Name="RestoreClientLibs" BeforeTargets="Build">
     <Exec Command="dotnet tool restore" />
-    <Exec Command="libman restore" />
+    <Exec Command="dotnet tool run libman restore" />
   </Target>
 </Project>
