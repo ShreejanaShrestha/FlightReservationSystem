@@ -20,4 +20,8 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
   </ItemGroup>
 
+  <Target Name="RestoreClientLibs" BeforeTargets="Build">
+    <Exec Command="dotnet tool restore" />
+    <Exec Command="libman restore" />
+  </Target>
 </Project>

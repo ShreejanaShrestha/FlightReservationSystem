@@ -144,8 +144,6 @@ namespace FlightReservationSystem.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation("User created a new account with password.");
 
-
-
                     var userId = await _userManager.GetUserIdAsync(user);
                     // confirmation token
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -160,7 +158,7 @@ namespace FlightReservationSystem.Areas.Identity.Pages.Account
                     if (_env.IsDevelopment())
                     {
                         return RedirectToPage("RegisterConfirmation",
-                            new { email = Input.Email, confirmUrl = callbackUrl });
+                            new { email = Input.Email, confirmUrl = callbackUrl, showFake = true });
                     }
                     return RedirectToPage("RegisterConfirmation",
                         new { email = Input.Email });
