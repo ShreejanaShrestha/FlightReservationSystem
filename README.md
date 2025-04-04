@@ -28,6 +28,7 @@ An ASP.NET Core MVC web application for booking flights with user authentication
      ```bash
      dotnet ef database update
      ```
+(No need to run this command. Already handled by dotnet restore. As it is already configured through dotnet-tools and project file)
 4. Restore libraries and tools
     ```bash
     dotnet tool restore
