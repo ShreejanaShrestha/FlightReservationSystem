@@ -1,0 +1,558 @@
+﻿@model FlightReservationSystem.DTOs.FlightSearchViewModel
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Book your flight with our easy-to-use flight reservation system">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="Your Company">
+    <title>Flight Reservation</title>
+
+    <!-- External CSS Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        /* Search Container Styles */
+        .search-container {
+            max-width: 1450px;
+            margin: calc(var(--spacing-unit)* 2) auto;
+            padding: 0;
+            background: var(--white);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            min-height: 300px;
+        }
+
+        /* Search Navigation Tabs Styles */
+        .search-nav-tabs {
+            display: flex;
+            justify-content: space-evenly;
+            gap: 0.25rem;
+            padding: 1rem 2rem;
+            background-color: rgba(0, 0, 0, 0.0);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            position: relative;
+            z-index: 0;
+            border-radius: 20px 20px 0px 0px;
+            overflow-x: auto;
+            scrollbar-width: none; /* For Firefox */
+            margin-top: -2px;
+            box-shadow: none;
+        }
+
+        .search-nav-tabs::-webkit-scrollbar {
+            display: none; /* For Chrome and others */
+        }
+
+        .search-nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: #4a4a4a;
+            font-weight: 500;
+            font-size: 1rem;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.25s ease-in-out;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        .search-nav-item:hover {
+            color: var(--primary-color);
+            background-color: rgba(var(--primary-color-rgb), 0.05);
+        }
+
+        .search-nav-item.active {
+            color: var(--primary-color);
+            font-weight: 600;
+                
+        }
+
+        .search-nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .search-nav-item i {
+            margin-right: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        /* Background image section - fixed height without filters */
+        .search-bg {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: 250px;
+            background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center center;
+            z-index: 1;
+        }
+
+        .search-header {
+            text-align: center;
+            padding: calc(var(--spacing-unit)* 1.5) calc(var(--spacing-unit)* 2);
+            position: relative;
+            z-index: 2;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .search-header h1 {
+            font-size: 1.9rem;
+            font-weight: 900;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-header p {
+            font-size: 0.9rem;
+            font-weight: 400;
+            opacity: 0.8;
+            letter-spacing: 0.5px;
+            max-width: 800px;
+            margin: 0 auto;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Position search content over the image */
+        .search-content {
+            position: relative;
+            z-index: 2;
+            padding: calc(var(--spacing-unit)* 1.5) calc(var(--spacing-unit)* 2);
+            background: transparent;
+            border-radius: 0 0 20px 20px;
+            margin-top: 0;
+        }
+
+        .search-card {
+            background: rgba(255, 255, 255, 1);
+            border-radius: 14px;
+            padding: calc(var(--spacing-unit)* 1.25);
+            animation: fadeIn 0.6s ease-out;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            margin: 0 auto;
+            margin-top: 20px;
+            max-width: 100%;
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            position: relative;
+            z-index: 3;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .search-content .tab-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .search-content .tab-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .search-nav-item {
+            padding: 10px 20px;
+            color: #666;
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .search-nav-item i {
+            margin-right: 8px;
+        }
+
+            
+
+        .search-nav-item:hover {
+            color: #007bff;
+        }
+
+        .search-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+        }
+
+        .form-group {
+            position: relative;
+            flex: 1;
+        }
+
+        .form-label {
+            font-size: 0.9rem;
+            color: #333;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .form-control, .form-select {
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 10px;
+            top: 65%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        .swap-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ddd !important;
+            background-color: white !important;
+        }
+
+        .search-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-btn i {
+            margin-right: 8px;
+        }
+
+        .search-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .where-to-next {
+            margin: 40px 0;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .section-title::after {
+            content: '';
+            width: 50px;
+            height: 3px;
+            background-color: #007bff;
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+        }
+
+        .departure-input-container {
+            max-width: 300px;
+        }
+
+        .results-table {
+            margin-top: 30px;
+            padding-bottom: 60px;
+        }
+
+        .no-results {
+            color: #666;
+            font-style: italic;
+            margin-top: 20px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+   
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Search Header -->
+        <div class="search-header">
+            <h1>Book Your Flight</h1>
+            <p>Experience world-class service and comfort</p>
+        </div>
+
+        <!-- Search Container -->
+        <div class="search-container">
+            <div class="search-bg"></div>
+            <div class="search-nav-tabs">
+                <a href="#" class="search-nav-item active" data-tab="book-flight">
+                    <i class="fas fa-plane"></i> Book a Flight
+                </a>
+                <a href="#" class="search-nav-item" data-tab="check-in">
+                    <i class="far fa-calendar-alt"></i> Check In
+                </a>
+                <a href="#" class="search-nav-item" data-tab="manage-bookings">
+                    <i class="fas fa-map-marker-alt"></i> Manage Bookings
+                </a>
+                <a href="#" class="search-nav-item" data-tab="flight-status">
+                    <i class="fas fa-info-circle"></i> Flight Status
+                </a>
+            </div>
+
+            <div class="search-content">
+                <!-- Book a Flight Form -->
+                <div class="search-card tab-content active" id="book-flight">
+                    <form asp-action="Search" method="post">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label asp-for="DepartureAirport" class="form-label">From</label>
+                                <select asp-for="DepartureAirport" asp-items="@(new SelectList(Model.Airports))" class="form-control">
+                                    <option value="">City or Airport</option>
+                                </select>
+                                <span asp-validation-for="DepartureAirport" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center justify-content-center">
+                                <button type="button" class="swap-btn btn btn-outline-secondary rounded-circle" aria-label="Swap departure and destination" title="Swap departure and destination">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="ArrivalAirport" class="form-label">To</label>
+                                <select asp-for="ArrivalAirport" asp-items="@(new SelectList(Model.Airports))" class="form-control">
+                                    <option value="">City or Airport</option>
+                                </select>
+                                <span asp-validation-for="ArrivalAirport" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="DepartureDate" class="form-label">Departure</label>
+                                <input asp-for="DepartureDate" class="form-control flatpickr" id="departureDate" />
+                                <i class="far fa-calendar-alt input-icon"></i>
+                                <span asp-validation-for="DepartureDate" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="ReturnDate" class="form-label">Return</label>
+                                <input asp-for="ReturnDate" class="form-control flatpickr" id="returnDate" placeholder="Return date" />
+                                <i class="far fa-calendar-alt input-icon"></i>
+                                <span asp-validation-for="ReturnDate" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-auto search-btn-container">
+                                <button type="submit" class="search-btn" aria-label="Search flights">
+                                    <i class="fas fa-search me-2"></i> Find Flights
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Check In Form (Placeholder) -->
+                <div class="search-card tab-content" id="check-in">
+                    <form id="checkInForm" method="post" novalidate>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bookingReference" class="form-label">Booking Reference</label>
+                                <input type="text" class="form-control" id="bookingReference" name="bookingReference" placeholder="Enter your booking reference" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Enter your last name" required>
+                            </div>
+                            <div class="col-auto search-btn-container">
+                                <button type="submit" class="search-btn" aria-label="Check in">
+                                    <i class="fas fa-check me-2"></i> Check In
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Flight Status Form (Placeholder) -->
+                <div class="search-card tab-content" id="flight-status">
+                    <form id="flightStatusForm" method="get" novalidate>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="flightNumber" class="form-label">Flight Number</label>
+                                <input type="text" class="form-control" id="flightNumber" name="flightNumber" placeholder="e.g., AA123" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="flightDate" class="form-label">Date</label>
+                                <input type="text" class="form-control flatpickr" id="flightDate" name="flightDate" required aria-label="Flight Date">
+                                <i class="far fa-calendar-alt input-icon"></i>
+                            </div>
+                            <div class="col-auto search-btn-container">
+                                <button type="submit" class="search-btn" aria-label="Check status">
+                                    <i class="fas fa-info-circle me-2"></i> Check Status
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results -->
+        <div class="results-table">
+            @if (Model.AvailableFlights.Any())
+            {
+                <h2 class="mt-4">Available Flights</h2>
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Flight Number</th>
+                            <th>Airline</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Base Price</th>
+                            <th>Available Seats</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var flight in Model.AvailableFlights)
+                        {
+                            <tr>
+                                <td>@flight.FlightNumber</td>
+                                <td>@flight.AirlineName</td>
+                                <td>@flight.DepartureAirport (@flight.DepartureTime)</td>
+                                <td>@flight.ArrivalAirport (@flight.ArrivalTime)</td>
+                                <td>@flight.BasePrice</td>
+                                <td>@flight.AvailableSeats</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@flight.FlightId" class="btn btn-info btn-sm">View Details</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else if (Model.AvailableFlights != null)
+            {
+                <p class="no-results">No flights found matching your criteria.</p>
+            }
+        </div>
+    </div>
+
+    <!-- External JS Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    <!-- Custom JavaScript for Tab Switching and Flatpickr -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tab switching
+            const tabs = document.querySelectorAll('.search-nav-item');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            // Hide all tab contents except the first one
+            tabContents.forEach((content, index) => {
+                if (index !== 0) {
+                    content.style.display = 'none';
+                }
+            });
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetTab = this.getAttribute('data-tab');
+
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    document.getElementById(targetTab).style.display = 'block';
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
+
+            // Swap button functionality
+            const swapBtn = document.querySelector('.swap-btn');
+            swapBtn.addEventListener('click', function () {
+                const departure = document.getElementById('DepartureAirport');
+                const arrival = document.getElementById('ArrivalAirport');
+                const temp = departure.value;
+                departure.value = arrival.value;
+                arrival.value = temp;
+            });
+
+            // Initialize Flatpickr for date pickers
+            flatpickr("#departureDate", {
+                dateFormat: "M j, Y", // Matches "Apr 6, 2025"
+                minDate: "today",
+                defaultDate: "@Model.DepartureDate.ToString("MMM d, yyyy")"
+            });
+
+            flatpickr("#returnDate", {
+                dateFormat: "M j, Y",
+                minDate: "@Model.DepartureDate.ToString("MMM d, yyyy")",
+                defaultDate: @if (Model.ReturnDate.HasValue)
+        {
+            @($"\"{Model.ReturnDate.Value.ToString("MMM d, yyyy")}\"")
+        }
+        else
+        {
+            @: null
+        }
+                            });
+
+        // Update ReturnDate's minDate when DepartureDate changes
+        const departurePicker = document.querySelector("#departureDate")._flatpickr;
+        const returnPicker = document.querySelector("#returnDate")._flatpickr;
+
+        departurePicker.config.onChange.push(function (selectedDates, dateStr, instance) {
+            returnPicker.set("minDate", dateStr);
+        });
+                        });
+    </script>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+</body>
+</html>

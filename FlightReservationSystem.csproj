@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.11" />
@@ -18,11 +19,15 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\images\airlines\" />
   </ItemGroup>
 
   <Target Name="EnsureEFTools" BeforeTargets="Build">
-    <Exec Command="dotnet tool install --local dotnet-ef" 
-        Condition="!Exists('.config/dotnet-tools.json') OR !$([System.IO.File]::ReadAllText('.config/dotnet-tools.json').Contains('dotnet-ef'))" />
+    <Exec Command="dotnet tool install --local dotnet-ef" Condition="!Exists('.config/dotnet-tools.json') OR !$([System.IO.File]::ReadAllText('.config/dotnet-tools.json').Contains('dotnet-ef'))" />
   </Target>	
 	
   <Target Name="RestoreClientLibs" BeforeTargets="Build">

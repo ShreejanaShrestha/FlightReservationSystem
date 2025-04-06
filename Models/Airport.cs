@@ -1,9 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlightReservationSystem.Models
 {
     public class Airport
     {
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int AirportId { get; set; }
 
         [Required, MaxLength(100)]

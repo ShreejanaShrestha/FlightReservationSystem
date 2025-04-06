@@ -15,7 +15,7 @@ namespace FlightReservationSystem.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            return RedirectToAction("Index", "Flight");
         }
 
         public IActionResult Privacy()

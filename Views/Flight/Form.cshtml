@@ -1,0 +1,50 @@
+﻿@model FlightReservationSystem.DTOs.FlightDTO
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Flight</title>
+</head>
+<body>
+    <h1>Create a New Flight</h1>
+    <form asp-action="Create" method="post">
+        <div>
+            <label asp-for="FlightNumber">Flight Number</label>
+            <input asp-for="FlightNumber" />
+            <span asp-validation-for="FlightNumber" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="AirlineName">Airline</label>
+            <input asp-for="AirlineName" />
+            <span asp-validation-for="AirlineName" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="DepartureAirport">Departure Airport</label>
+            <input asp-for="DepartureAirport" />
+            <span asp-validation-for="DepartureAirport" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="ArrivalAirport">Arrival Airport</label>
+            <input asp-for="ArrivalAirport" />
+            <span asp-validation-for="ArrivalAirport" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="DepartureTime">Departure Time</label>
+            <input asp-for="DepartureTime" type="datetime-local" />
+            <span asp-validation-for="DepartureTime" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="ArrivalTime">Arrival Time</label>
+            <input asp-for="ArrivalTime" type="datetime-local" />
+            <span asp-validation-for="ArrivalTime" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="BasePrice">Base Price</label>
+            <input asp-for="BasePrice" />
+            <span asp-validation-for="BasePrice" class="text-danger"></span>
+        </div>
+        <button type="submit">Create</button>
+    </form>
+    <a asp-action="Index">Back to List</a>
+</body>
+</html>

@@ -1,8 +1,10 @@
 using FlightReservationSystem.Data;
+using FlightReservationSystem.Helpers;
 using FlightReservationSystem.Models;
 using FlightReservationSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 using System.Security.Principal;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +26,26 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddScoped<INameFormatter, NameFormattingService>();
 
+// Add AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
+
+// Add FlightService
+builder.Services.AddScoped<IFlightService, FlightService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+// Add swagger
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Flight Reservation API",
+        Version = "v1",
+        Description = "API for managing flight bookings"
+    });
+});
+// Add logging
+builder.Services.AddLogging();
+
 var app = builder.Build();
 
 // to seed the roles, run this right after app is built, before any middleware
@@ -43,6 +65,10 @@ else
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+// Add to middleware
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Flight API v1"));
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

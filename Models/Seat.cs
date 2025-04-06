@@ -1,9 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlightReservationSystem.Models
 {
     public class Seat
     {
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int SeatId { get; set; }
 
         // Foreign Key

@@ -5,6 +5,7 @@ namespace FlightReservationSystem.Models
 {
     public class Flight
     {
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int FlightId { get; set; }
 
         [Required, MaxLength(10)]

@@ -17,6 +17,42 @@ html {
   min-height: 100%;
 }
 
+
+
+:root {
+    --primary-color: #1661af;
+    --secondary-color: #333;
+    --danger-color: #d71921;
+    --neutral-gray: #6c757d;
+    --border-radius: 5px;
+    --transition-ease: 0.25s ease-in-out;
+    --spacing-unit: 1rem;
+    --white: #fff;
+    --light-blue: #f0f8ff;
+    --highlight-blue: #4a90e2;
+    --overlay-dark: rgba(0, 0, 0, 0.3);
+    --shadow-color: rgba(0, 0, 0, 0.15);
+    --glow-color: rgba(22, 97, 175, 0.3);
+    --gradient-border: linear-gradient(45deg, var(--primary-color), var(--highlight-blue));
+    --button-glow: rgba(74, 144, 226, 0.5);
+}
+
 body {
-  margin-bottom: 60px;
+    font-family: 'Poppins', sans-serif;
+    background: var(--white);
+    color: var(--secondary-color);
+    padding: var(--spacing-unit) 0;
+    margin: 0;
+    box-sizing: border-box;
+    line-height: 1.6;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
 }

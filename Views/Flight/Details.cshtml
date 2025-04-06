@@ -1,0 +1,20 @@
+﻿@model FlightReservationSystem.DTOs.FlightDTO
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flight Details</title>
+</head>
+<body>
+    <h1>Flight Details</h1>
+    <div>
+        <p><strong>Flight Number:</strong> @Model.FlightNumber</p>
+        <p><strong>Airline:</strong> @Model.AirlineName</p>
+        <p><strong>Departure:</strong> @Model.DepartureAirport (@Model.DepartureTime)</p>
+        <p><strong>Arrival:</strong> @Model.ArrivalAirport (@Model.ArrivalTime)</p>
+        <p><strong>Base Price:</strong> @Model.BasePrice</p>
+        <p><strong>Available Seats:</strong> @Model.AvailableSeats</p>
+    </div>
+    <a asp-action="Index">Back to List</a>
+</body>
+</html>

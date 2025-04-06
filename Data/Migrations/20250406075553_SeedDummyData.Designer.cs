@@ -4,6 +4,7 @@ using FlightReservationSystem.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FlightReservationSystem.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250406075553_SeedDummyData")]
+    partial class SeedDummyData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,7 +49,7 @@ namespace FlightReservationSystem.Data.Migrations
 
                     b.HasKey("AirlineId");
 
-                    b.ToTable("Airlines", (string)null);
+                    b.ToTable("Airlines");
 
                     b.HasData(
                         new
@@ -95,7 +98,7 @@ namespace FlightReservationSystem.Data.Migrations
 
                     b.HasKey("AirportId");
 
-                    b.ToTable("Airports", (string)null);
+                    b.ToTable("Airports");
 
                     b.HasData(
                         new
@@ -160,7 +163,7 @@ namespace FlightReservationSystem.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("FlightReservationSystem.Models.Flight", b =>
@@ -202,7 +205,7 @@ namespace FlightReservationSystem.Data.Migrations
 
                     b.HasIndex("DepartureAirportId");
 
-                    b.ToTable("Flights", (string)null);
+                    b.ToTable("Flights");
 
                     b.HasData(
                         new
@@ -259,7 +262,7 @@ namespace FlightReservationSystem.Data.Migrations
 
                     b.HasIndex("BookingId");
 
-                    b.ToTable("Passengers", (string)null);
+                    b.ToTable("Passengers");
                 });
 
             modelBuilder.Entity("FlightReservationSystem.Models.Payment", b =>
@@ -294,7 +297,7 @@ namespace FlightReservationSystem.Data.Migrations
                     b.HasIndex("BookingId")
                         .IsUnique();
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("FlightReservationSystem.Models.Seat", b =>
@@ -325,7 +328,7 @@ namespace FlightReservationSystem.Data.Migrations
 
                     b.HasIndex("FlightId");
 
-                    b.ToTable("Seats", (string)null);
+                    b.ToTable("Seats");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

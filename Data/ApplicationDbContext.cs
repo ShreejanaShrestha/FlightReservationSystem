@@ -48,6 +48,7 @@ namespace FlightReservationSystem.Data
                 new Airport { AirportId = 1, Name = "John F. Kennedy", Code = "JFK", City = "New York", Country = "USA" },
                 new Airport { AirportId = 2, Name = "Heathrow", Code = "LHR", City = "London", Country = "UK" }
             );
+
         }
     }
 }

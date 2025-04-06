@@ -1,0 +1,108 @@
+﻿@model FlightReservationSystem.DTOs.BookingViewModel
+
+<div class="container">
+    <h2>Complete Your Booking</h2>
+    
+    <!-- Flight Summary -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4>@Model.Flight.AirlineName - @Model.Flight.FlightNumber</h4>
+            <p>@Model.Flight.DepartureAirport to @Model.Flight.ArrivalAirport</p>
+            <p>Departure: @Model.Flight.DepartureTime.ToString("f")</p>
+            <p>Arrival: @Model.Flight.ArrivalTime.ToString("f")</p>
+            <p class="fw-bold">Total Price: $@Model.TotalPrice</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post">
+        <input type="hidden" asp-for="Flight.FlightId" />
+        
+        <!-- Passenger Details -->
+        <h4>Passenger Details</h4>
+        <div id="passengers-container">
+            @for (int i = 0; i < Model.Passengers.Count; i++)
+            {
+                <div class="card mb-3 passenger-card">
+                    <div class="card-body">
+                        <h5>Passenger @(i + 1)</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label asp-for="Passengers[i].FullName"></label>
+                                    <input asp-for="Passengers[i].FullName" class="form-control" />
+                                    <span asp-validation-for="Passengers[i].FullName" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label asp-for="Passengers[i].PassportNumber"></label>
+                                    <input asp-for="Passengers[i].PassportNumber" class="form-control" />
+                                    <span asp-validation-for="Passengers[i].PassportNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label asp-for="Passengers[i].SeatClass"></label>
+                                    <select asp-for="Passengers[i].SeatClass" class="form-control">
+                                        <option value="A">First Class</option>
+                                        <option value="B">Business Class</option>
+                                        <option value="C">Economy Class</option>
+                                    </select>
+                                    <span asp-validation-for="Passengers[i].SeatClass" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <button type="button" id="add-passenger" class="btn btn-secondary mb-4">Add Another Passenger</button>
+        
+        <button type="submit" class="btn btn-primary">Complete Booking</button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            let passengerCount = @Model.Passengers.Count;
+            
+            $('#add-passenger').click(function() {
+                passengerCount++;
+                const html = `
+                <div class="card mb-3 passenger-card">
+                    <div class="card-body">
+                        <h5>Passenger ${passengerCount}</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <input name="Passengers[${passengerCount - 1}].FullName" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Passport Number</label>
+                                    <input name="Passengers[${passengerCount - 1}].PassportNumber" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Seat Class</label>
+                                    <select name="Passengers[${passengerCount - 1}].SeatClass" class="form-control">
+                                        <option value="A">First Class</option>
+                                        <option value="B">Business Class</option>
+                                        <option value="C">Economy Class</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                $('#passengers-container').append(html);
+            });
+        });
+    </script>
+}

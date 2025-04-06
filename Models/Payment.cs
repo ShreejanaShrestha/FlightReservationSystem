@@ -5,6 +5,7 @@ namespace FlightReservationSystem.Models
 {
     public class Payment
     {
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int PaymentId { get; set; }
 
         // Foreign Key

@@ -1,7 +1,10 @@
-﻿namespace FlightReservationSystem.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace FlightReservationSystem.Models
 {
     public class Booking
     {
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int BookingId { get; set; }
 
         // Foreign Keys
