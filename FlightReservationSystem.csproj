@@ -20,9 +20,12 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="logs\" />
+  </ItemGroup>
+
   <Target Name="EnsureEFTools" BeforeTargets="Build">
-    <Exec Command="dotnet tool install --local dotnet-ef" 
-        Condition="!Exists('.config/dotnet-tools.json') OR !$([System.IO.File]::ReadAllText('.config/dotnet-tools.json').Contains('dotnet-ef'))" />
+    <Exec Command="dotnet tool install --local dotnet-ef" Condition="!Exists('.config/dotnet-tools.json') OR !$([System.IO.File]::ReadAllText('.config/dotnet-tools.json').Contains('dotnet-ef'))" />
   </Target>	
 	
   <Target Name="RestoreClientLibs" BeforeTargets="Build">

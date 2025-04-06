@@ -1,0 +1,65 @@
+﻿@model List<FlightReservationSystem.DTO.FlightDto>
+
+@{
+    ViewData["Title"] = "Flight Search Results";
+}
+
+<h2>Flight Search Results</h2>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-info">@TempData["Message"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (Model == null || !Model.Any())
+{
+    <p>No flights found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Flight Number</th>
+                <th>Airline</th>
+                <th>Departure</th>
+                <th>Arrival</th>
+                <th>Departure Time</th>
+                <th>Arrival Time</th>
+                <th>Price</th>
+                <th>Available Seats</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var flight in Model)
+            {
+                <tr>
+                    <td>@flight.FlightNumber</td>
+                    <td>@flight.AirlineName</td>
+                    <td>@flight.DepartureAirportName</td>
+                    <td>@flight.ArrivalAirportName</td>
+                    <td>@flight.DepartureTime</td>
+                    <td>@flight.ArrivalTime</td>
+                    <td>$@flight.BasePrice</td>
+                    <td>@flight.Seats.Count(s => !s.IsBooked)</td>
+                    <td>
+                        <form asp-action="SelectFlight" method="post">
+                            <input type="hidden" name="flightId" value="@flight.FlightId" />
+                            <button type="submit" class="btn btn-primary">Select</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<div>
+    <a asp-action="Search" class="btn btn-secondary">Search Again</a>
+</div>

@@ -1,0 +1,21 @@
+﻿@model dynamic
+
+@{
+    ViewData["Title"] = "Booking Confirmation";
+}
+
+<h2>Booking Confirmation</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (ViewBag.ConfirmationMessage != null)
+{
+    <div class="alert alert-success">@ViewBag.ConfirmationMessage</div>
+}
+
+<div class="mt-3">
+    <a asp-action="Search" class="btn btn-primary">Book Another Flight</a>
+</div>

@@ -38,16 +38,31 @@ namespace FlightReservationSystem.Data
                 .HasForeignKey(f => f.ArrivalAirportId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Seed sample data (optional)
-            modelBuilder.Entity<Airline>().HasData(
-                new Airline { AirlineId = 1, Name = "Delta Airlines", Code = "DL", LogoUrl = "/images/airlines/delta.png" },
-                new Airline { AirlineId = 2, Name = "United Airlines", Code = "UA", LogoUrl = "/images/airlines/united.png" }
-            );
+  
+        }
 
-            modelBuilder.Entity<Airport>().HasData(
-                new Airport { AirportId = 1, Name = "John F. Kennedy", Code = "JFK", City = "New York", Country = "USA" },
-                new Airport { AirportId = 2, Name = "Heathrow", Code = "LHR", City = "London", Country = "UK" }
-            );
+        public void ClearAllData()
+        {
+            // Disable foreign key constraints temporarily
+            Database.ExecuteSqlRaw("EXEC sp_MSforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'");
+
+            // Clear each table
+            Payments.RemoveRange(Payments);
+            Passengers.RemoveRange(Passengers);
+            Bookings.RemoveRange(Bookings);
+            Seats.RemoveRange(Seats);
+            Flights.RemoveRange(Flights);
+            Airlines.RemoveRange(Airlines);
+            Airports.RemoveRange(Airports);
+
+            // Clear Identity-related tables (if needed)
+            Users.RemoveRange(Users); // ApplicationUser
+            Roles.RemoveRange(Roles); // IdentityRole
+
+            SaveChanges();
+
+            // Re-enable foreign key constraints
+            Database.ExecuteSqlRaw("EXEC sp_MSforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL'");
         }
     }
 }

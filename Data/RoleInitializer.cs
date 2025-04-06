@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
 
 namespace FlightReservationSystem.Data
 {
@@ -9,7 +8,7 @@ namespace FlightReservationSystem.Data
         {
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-            string[] roles = { "Admin", "Traveller" }; // Guest is handled via absence of role
+            string[] roles = { "Admin", "Traveller" };
 
             foreach (var role in roles)
             {
