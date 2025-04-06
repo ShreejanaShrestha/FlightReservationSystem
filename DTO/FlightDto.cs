@@ -1,8 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Collections.Generic;
-using FlightReservationSystem.DTO;
-
-namespace FlightReservationSystem.DTO
+﻿namespace FlightReservationSystem.DTO
 {
     public class FlightDto
     {
@@ -18,8 +14,7 @@ namespace FlightReservationSystem.DTO
         public DateTime ArrivalTime { get; set; }
         public decimal BasePrice { get; set; }
         public List<SeatDto> Seats { get; set; }
-        public int AvailableSeats { get; set; }
     }
 
-
+    
 }
