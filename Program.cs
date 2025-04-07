@@ -3,80 +3,135 @@ using Microsoft.EntityFrameworkCore;
 using FlightReservationSystem.Data;
 using FlightReservationSystem.Models;
 
+// Initialize the web application builder with default configurations
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews(); // For MVC controllers and views
-builder.Services.AddControllers(); // For API controllers
-builder.Services.AddRazorPages(); // Explicitly add Razor Pages support
+// ==============================================
+// SERVICE CONFIGURATION SECTION
+// ==============================================
 
-// Add DbContext
+// Register MVC services for controllers and views
+builder.Services.AddControllersWithViews();
+
+// Register API controller services
+builder.Services.AddControllers();
+
+// Register Razor Pages services
+builder.Services.AddRazorPages();
+
+// Configure Entity Framework Core DbContext with SQL Server
+// Connection string is retrieved from appsettings.json
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add Identity
+// Configure ASP.NET Core Identity with custom settings
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
+    // Account confirmation settings
     options.SignIn.RequireConfirmedAccount = false;
+
+    // Password complexity requirements
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = true;
     options.Password.RequiredLength = 8;
+
+    // User requirements
     options.User.RequireUniqueEmail = true;
 })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders()
-    .AddDefaultUI();
+.AddEntityFrameworkStores<ApplicationDbContext>()  // Use EF Core for storage
+.AddDefaultTokenProviders()                       // For email confirmation, password reset etc.
+.AddDefaultUI();                                  // Use default UI for Identity
 
-// Configure authentication
+// Configure application cookie settings
 builder.Services.ConfigureApplicationCookie(options =>
 {
+    // Path settings for authentication operations
     options.LoginPath = "/Identity/Account/Login";
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
     options.LogoutPath = "/Identity/Account/Logout";
+
+    // Session expiration settings
     options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
 });
 
-// Add HttpClient for API calls
+// Register HttpClient factory for making HTTP requests
 builder.Services.AddHttpClient();
 
-// Add memory cache for FlightsController
+// Add in-memory caching service for performance optimization
 builder.Services.AddMemoryCache();
+
+// Add session state
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true; // Required for GDPR compliance
+    options.Cookie.SameSite = SameSiteMode.Lax; // Ensure cookies work with redirects
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Allow cookies on localhost (HTTP)
+});
+
+// ==============================================
+// APPLICATION BUILD AND MIDDLEWARE CONFIGURATION
+// ==============================================
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline based on environment
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-    app.UseHttpsRedirection();
+    // Production-specific configurations
+    app.UseExceptionHandler("/Home/Error");  // Custom error handler
+    app.UseHsts();                           // Enable HTTP Strict Transport Security
+    app.UseHttpsRedirection();               // Redirect HTTP to HTTPS
 }
 
+// Enable static file serving (wwwroot folder)
 app.UseStaticFiles();
 
+// Configure routing
 app.UseRouting();
 
+// Enable authentication and authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseSession();
+
+// Log session middleware initialization
+app.Logger.LogInformation("Session middleware initialized.");
+
+// Configure MVC route mapping
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Search}/{action=Search}/{id?}");
 
-app.MapControllers(); // Map API routes like api/flights/search
+// Map API controller routes
+app.MapControllers();
 
+// Map Razor Pages routes
 app.MapRazorPages();
 
-// Seed the database with fresh data on every startup
+// ==============================================
+// DATABASE SEEDING SECTION
+// ==============================================
+
+// Note: In production, this seeding approach would be replaced with a more controlled migration strategy
+// This implementation is for development/demo purposes only
+
 using (var scope = app.Services.CreateScope())
 {
+    // Resolve required services from DI container
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-    // Truncate all relevant tables
+    // WARNING: This truncates all tables - only for development/demo purposes
+    // In production, you would use proper database migrations
+
+    // Clear application data tables
     dbContext.Seats.RemoveRange(dbContext.Seats);
     dbContext.Flights.RemoveRange(dbContext.Flights);
     dbContext.Airlines.RemoveRange(dbContext.Airlines);
@@ -85,13 +140,14 @@ using (var scope = app.Services.CreateScope())
     dbContext.Bookings.RemoveRange(dbContext.Bookings);
 
     // Clear Identity tables
-    dbContext.Users.RemoveRange(dbContext.Users); // AspNetUsers
-    dbContext.Roles.RemoveRange(dbContext.Roles); // AspNetRoles
-    dbContext.UserRoles.RemoveRange(dbContext.UserRoles); // AspNetUserRoles
+    dbContext.Users.RemoveRange(dbContext.Users);
+    dbContext.Roles.RemoveRange(dbContext.Roles);
+    dbContext.UserRoles.RemoveRange(dbContext.UserRoles);
 
     await dbContext.SaveChangesAsync();
 
-    // Optional: Reset auto-increment IDs (SQL Server specific)
+    // Reset auto-increment IDs (SQL Server specific)
+    // Note: This is database-specific and would need adjustment for other providers
     await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('Airports', RESEED, 0)");
     await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('Airlines', RESEED, 0)");
     await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('Flights', RESEED, 0)");
@@ -99,13 +155,21 @@ using (var scope = app.Services.CreateScope())
     await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('Bookings', RESEED, 0)");
     await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('Passengers', RESEED, 0)");
 
-    // Ensure the Admin role exists
+    // ==============================================
+    // ROLE AND USER SEEDING
+    // ==============================================
+
+    // Ensure Admin role exists
     if (!await roleManager.RoleExistsAsync("Admin"))
     {
         await roleManager.CreateAsync(new IdentityRole("Admin"));
     }
 
-    // Seed Airports
+    // ==============================================
+    // REFERENCE DATA SEEDING
+    // ==============================================
+
+    // Seed Airports - major international airports
     var airports = new List<Airport>
     {
         new Airport { Name = "John F. Kennedy International Airport", Code = "JFK", City = "New York", Country = "USA" },
@@ -116,7 +180,7 @@ using (var scope = app.Services.CreateScope())
     dbContext.Airports.AddRange(airports);
     await dbContext.SaveChangesAsync();
 
-    // Seed Airlines
+    // Seed Airlines - major carriers
     var airlines = new List<Airline>
     {
         new Airline { Name = "Delta Airlines", Code = "DL" },
@@ -126,29 +190,36 @@ using (var scope = app.Services.CreateScope())
     dbContext.Airlines.AddRange(airlines);
     await dbContext.SaveChangesAsync();
 
-    // Seed Flights with Seats - ENHANCED VERSION
+    // ==============================================
+    // FLIGHT AND SEAT DATA GENERATION
+    // ==============================================
+
     var random = new Random();
     var flightClasses = new[] { "Economy", "Business", "First" };
 
-    // Helper method to create flights between airports
+    /// <summary>
+    /// Helper method to create flights between two airports
+    /// </summary>
+    /// <param name="originId">ID of departure airport</param>
+    /// <param name="destinationId">ID of arrival airport</param>
+    /// <param name="airlines">List of available airlines</param>
     void CreateFlightsBetweenAirports(int originId, int destinationId, List<Airline> airlines)
     {
-        // Create 4-5 flights between these airports with different times and airlines
-        int flightCount = random.Next(4, 6); // Random number between 4 and 5
+        // Create 4-6 flights between these airports with randomized details
+        int flightCount = random.Next(4, 7);
 
         for (int i = 0; i < flightCount; i++)
         {
-            // Choose a random airline
+            // Select random airline
             var airline = airlines[random.Next(airlines.Count)];
 
-            // Create departure and arrival times
-            // Base departure time - starting from tomorrow with different hours
+            // Generate random departure time within next 14 days
             var departureDate = DateTime.Today.AddDays(random.Next(1, 14));
-            var departureHour = random.Next(5, 22); // Flights between 5 AM and 10 PM
+            var departureHour = random.Next(5, 22);
             var departureTime = new DateTime(departureDate.Year, departureDate.Month, departureDate.Day,
                                             departureHour, random.Next(0, 60), 0);
 
-            // Flight duration between 1 and 8 hours depending on if it's domestic or international
+            // Calculate flight duration based on whether it's domestic or international
             bool isDomestic = airports[originId - 1].Country == airports[destinationId - 1].Country;
             int minHours = isDomestic ? 1 : 3;
             int maxHours = isDomestic ? 5 : 12;
@@ -157,12 +228,12 @@ using (var scope = app.Services.CreateScope())
             int durationMinutes = random.Next(0, 60);
             var arrivalTime = departureTime.AddHours(durationHours).AddMinutes(durationMinutes);
 
-            // Base price based on distance (simulated by duration) and class
+            // Generate base price based on flight characteristics
             decimal basePrice = isDomestic ?
                 random.Next(150, 500) :
                 random.Next(400, 1200);
 
-            // Create the flight
+            // Create flight entity
             var flight = new Flight
             {
                 FlightNumber = $"{airline.Code}{random.Next(100, 1000)}",
@@ -175,8 +246,8 @@ using (var scope = app.Services.CreateScope())
                 Seats = new List<Seat>()
             };
 
-            // Add seats
-            // For economy class - more seats
+            // Generate seats for different classes
+            // Economy class seats (60% of capacity)
             for (char row = 'A'; row <= 'F'; row++)
             {
                 for (int seatNum = 1; seatNum <= 20; seatNum++)
@@ -185,12 +256,12 @@ using (var scope = app.Services.CreateScope())
                     {
                         SeatNumber = $"{seatNum}{row}",
                         Class = "Economy",
-                        IsBooked = random.Next(10) < 3 // 30% chance the seat is already booked
+                        IsBooked = random.Next(10) < 3 // 30% booked
                     });
                 }
             }
 
-            // For business class - fewer seats
+            // Business class seats (20% of capacity)
             for (char row = 'A'; row <= 'D'; row++)
             {
                 for (int seatNum = 21; seatNum <= 25; seatNum++)
@@ -199,12 +270,12 @@ using (var scope = app.Services.CreateScope())
                     {
                         SeatNumber = $"{seatNum}{row}",
                         Class = "Business",
-                        IsBooked = random.Next(10) < 2 // 20% chance the seat is already booked
+                        IsBooked = random.Next(10) < 2 // 20% booked
                     });
                 }
             }
 
-            // For first class - even fewer seats
+            // First class seats (10% of capacity)
             for (char row = 'A'; row <= 'C'; row++)
             {
                 for (int seatNum = 26; seatNum <= 28; seatNum++)
@@ -213,7 +284,7 @@ using (var scope = app.Services.CreateScope())
                     {
                         SeatNumber = $"{seatNum}{row}",
                         Class = "First",
-                        IsBooked = random.Next(10) < 1 // 10% chance the seat is already booked
+                        IsBooked = random.Next(10) < 1 // 10% booked
                     });
                 }
             }
@@ -222,12 +293,12 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Create flights between all airport pairs (both directions)
+    // Create flight network - flights between all airport pairs
     for (int i = 0; i < airports.Count; i++)
     {
         for (int j = 0; j < airports.Count; j++)
         {
-            if (i != j) // Don't create flights from an airport to itself
+            if (i != j) // Skip flights from an airport to itself
             {
                 CreateFlightsBetweenAirports(airports[i].AirportId, airports[j].AirportId, airlines);
             }
@@ -236,7 +307,11 @@ using (var scope = app.Services.CreateScope())
 
     await dbContext.SaveChangesAsync();
 
-    // Seed a test user
+    // ==============================================
+    // TEST USER CREATION
+    // ==============================================
+
+    // Create a default test admin user for development
     var testUser = new ApplicationUser
     {
         UserName = "testuser@example.com",
@@ -245,6 +320,7 @@ using (var scope = app.Services.CreateScope())
         FirstName = "Test",
         LastName = "User"
     };
+
     var result = await userManager.CreateAsync(testUser, "Test@1234");
     if (result.Succeeded)
     {
@@ -257,4 +333,5 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// Start the application
 app.Run();

@@ -2,37 +2,76 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 
+<style>
+    .nav-link {
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        transition: background-color 0.3s ease;
+    }
+
+    .nav-link:hover,
+    .btn-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+
+    .user-dropdown .dropdown-menu {
+        background-color: #146C94;
+        border: none;
+        border-radius: 10px;
+    }
+
+    .user-dropdown .dropdown-item {
+        color: #F6F1F1;
+        padding: 10px 20px;
+    }
+
+    .user-dropdown .dropdown-item:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+</style>
+
 <ul class="navbar-nav">
     @if (SignInManager.IsSignedIn(User))
     {
-        <li class="nav-item">
-            @{
-                var user = await UserManager.GetUserAsync(User);
-                var displayName = user != null ? $"{user.FirstName} {user.LastName}" : User.Identity?.Name;
-            }
-            <a class="nav-link text-light" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @displayName!</a>
-        </li>
-        @if (User.IsInRole("Admin"))
-        {
-            <li class="nav-item">
-                <a class="nav-link text-light" asp-controller="Admin" asp-action="Index">Admin Panel</a>
-            </li>
-            <li class="nav-item">
-                <form class="form-inline" asp-controller="Admin" asp-action="ResetDatabase" method="post" onsubmit="return confirm('Are you sure you want to reset the database? This will clear all data and sign you out.');">
-                    <button type="submit" class="nav-link btn btn-link text-light">Reset Database</button>
-                </form>
-            </li>
-        }
-        else
-        {
-            <li class="nav-item">
-                <a class="nav-link text-light" asp-controller="Booking" asp-action="ManageBookings">Manage Bookings</a>
-            </li>
-        }
-        <li class="nav-item">
-            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Search", "Search", new { area = "" })">
-                <button type="submit" class="nav-link btn btn-link text-light">Logout</button>
-            </form>
+        
+            var user = await UserManager.GetUserAsync(User);
+            var displayName = user != null ? $"{user.FirstName} {user.LastName}" : User.Identity?.Name;
+        
+
+        <li class="nav-item dropdown user-dropdown">
+            <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle me-1"></i> Hello @displayName
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end mt-2" aria-labelledby="userDropdown">
+                <li>
+                    <a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/Index">Manage Profile</a>
+                </li>
+
+                @if (User.IsInRole("Admin"))
+                {
+                    <li>
+                        <a class="dropdown-item" asp-controller="Admin" asp-action="Index">Admin Panel</a>
+                    </li>
+                    <li>
+                        <form asp-controller="Admin" asp-action="ResetDatabase" method="post" onsubmit="return confirm('Are you sure you want to reset the database? This will clear all data and sign you out.');">
+                            <button type="submit" class="dropdown-item">Reset Database</button>
+                        </form>
+                    </li>
+                }
+                else
+                {
+                    <li>
+                        <a class="dropdown-item" asp-controller="Booking" asp-action="ManageBookings">Manage Bookings</a>
+                    </li>
+                }
+
+                <li>
+                    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Search", "Search", new { area = "" })">
+                        <button type="submit" class="dropdown-item">Logout</button>
+                    </form>
+                </li>
+            </ul>
         </li>
     }
     else

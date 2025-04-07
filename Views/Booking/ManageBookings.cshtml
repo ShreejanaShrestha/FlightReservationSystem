@@ -18,6 +18,7 @@
         <thead>
             <tr>
                 <th>Booking ID</th>
+                <th>PNR</th>
                 <th>Flight Number</th>
                 <th>Airline</th>
                 <th>Departure</th>
@@ -25,6 +26,7 @@
                 <th>Booking Date</th>
                 <th>Status</th>
                 <th>Passengers</th>
+                
             </tr>
         </thead>
         <tbody>
@@ -32,12 +34,15 @@
             {
                 <tr>
                     <td>@booking.BookingId</td>
+                    <td>@booking.PNR</td>
                     <td>@booking.Flight.FlightNumber</td>
                     <td>@booking.Flight.Airline.Name</td>
                     <td>@booking.Flight.DepartureAirport.Name (@booking.Flight.DepartureAirport.Code)</td>
                     <td>@booking.Flight.ArrivalAirport.Name (@booking.Flight.ArrivalAirport.Code)</td>
                     <td>@booking.BookingDate.ToString("g")</td>
                     <td>@booking.Status</td>
+
+                    
                     <td>
                         <ul>
                             @foreach (var passenger in booking.Passengers)
@@ -46,6 +51,7 @@
                             }
                         </ul>
                     </td>
+                   
                 </tr>
             }
         </tbody>

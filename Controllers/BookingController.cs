@@ -1,26 +1,56 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿// FlightReservationSystem/Controllers/BookingController.cs
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FlightReservationSystem.Data;
 using FlightReservationSystem.DTO;
 using FlightReservationSystem.Models;
+using FlightReservationSystem.Services;
 
 namespace FlightReservationSystem.Controllers
 {
+    /// <summary>
+    /// Controller for handling all booking-related operations
+    /// </summary>
+    /// <remarks>
+    /// This controller manages the complete booking workflow including:
+    /// - Flight selection
+    /// - Passenger details collection
+    /// - Booking confirmation
+    /// - Payment processing
+    /// - Booking management
+    /// </remarks>
     public class BookingController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<BookingController> _logger;
 
-        public BookingController(ApplicationDbContext context)
+        /// <summary>
+        /// Initializes a new instance of the BookingController
+        /// </summary>
+        /// <param name="context">Database context for booking operations</param>
+        /// <param name="logger">Logger for error and information logging</param>
+        public BookingController(ApplicationDbContext context, ILogger<BookingController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
-        // POST: /Booking/SelectFlight
+        /// <summary>
+        /// Handles flight selection and stores the selected flight in session
+        /// </summary>
+        /// <param name="flightId">ID of the selected flight</param>
+        /// <returns>
+        /// Redirects to ReviewFlight if successful
+        /// Redirects to Search with error message if flight not found or no seats available
+        /// </returns>
         [HttpPost]
         public IActionResult SelectFlight(int flightId)
         {
+            _logger.LogInformation($"SelectFlight called with flightId: {flightId}");
+
+            // Retrieve flight with all related data
             var flight = _context.Flights
                 .Include(f => f.Airline)
                 .Include(f => f.DepartureAirport)
@@ -30,41 +60,57 @@ namespace FlightReservationSystem.Controllers
 
             if (flight == null)
             {
+                _logger.LogWarning($"Flight with ID {flightId} not found.");
                 TempData["Error"] = "Selected flight not found.";
                 return RedirectToAction("Search", "Search");
             }
 
+            // Check seat availability
             if (!flight.Seats.Any(s => !s.IsBooked))
             {
+                _logger.LogWarning($"No available seats on flight with ID {flightId}.");
                 TempData["Error"] = "No available seats on this flight.";
                 return RedirectToAction("Search", "Search");
             }
 
-            TempData["SelectedFlightId"] = flightId;
+            // Store selected flight in session
+            HttpContext.Session.SetInt32("SelectedFlightId", flightId);
+            _logger.LogInformation($"Stored SelectedFlightId {flightId} in session.");
+
             return RedirectToAction("ReviewFlight");
         }
 
-        // GET: /Booking/ReviewFlight
+        /// <summary>
+        /// Displays flight details for review before proceeding with booking
+        /// </summary>
+        /// <returns>
+        /// ReviewFlight view if successful
+        /// Redirects to Search with error message if no flight selected
+        /// </returns>
         public IActionResult ReviewFlight()
         {
-            if (!TempData.ContainsKey("SelectedFlightId"))
+            _logger.LogInformation("ReviewFlight action called.");
+
+            // Retrieve selected flight from session
+            var flightId = HttpContext.Session.GetInt32("SelectedFlightId");
+            if (!flightId.HasValue)
             {
+                _logger.LogWarning("SelectedFlightId not found in session during ReviewFlight.");
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
                 return RedirectToAction("Search", "Search");
             }
 
-            int flightId = (int)TempData["SelectedFlightId"];
-            TempData.Keep("SelectedFlightId");
-
+            // Retrieve complete flight details
             var flight = _context.Flights
                 .Include(f => f.Airline)
                 .Include(f => f.DepartureAirport)
                 .Include(f => f.ArrivalAirport)
                 .Include(f => f.Seats)
-                .FirstOrDefault(f => f.FlightId == flightId);
+                .FirstOrDefault(f => f.FlightId == flightId.Value);
 
             if (flight == null)
             {
+                _logger.LogWarning($"Flight with ID {flightId.Value} not found.");
                 TempData["Error"] = "Selected flight not found.";
                 return RedirectToAction("Search", "Search");
             }
@@ -72,180 +118,302 @@ namespace FlightReservationSystem.Controllers
             return View(flight);
         }
 
-        // GET: /Booking/AddPassengerDetails
+        /// <summary>
+        /// Displays form for collecting passenger details
+        /// </summary>
+        /// <returns>
+        /// AddPassengerDetails view if successful
+        /// Redirects to Search with error message if no flight selected
+        /// </returns>
         public IActionResult AddPassengerDetails()
         {
-            if (!TempData.ContainsKey("SelectedFlightId"))
+            _logger.LogInformation("AddPassengerDetails GET action called.");
+
+            // Verify flight selection
+            var flightId = HttpContext.Session.GetInt32("SelectedFlightId");
+            if (!flightId.HasValue)
             {
+                _logger.LogWarning("SelectedFlightId not found in session during AddPassengerDetails GET.");
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
                 return RedirectToAction("Search", "Search");
             }
 
-            TempData.Keep("SelectedFlightId");
-            return View();
+            // Prepare view model with flight details
+            var flight = _context.Flights
+                .FirstOrDefault(f => f.FlightId == flightId.Value);
+
+            if (flight == null)
+            {
+                _logger.LogWarning($"Flight with ID {flightId.Value} not found.");
+                TempData["Error"] = "Selected flight not found.";
+                return RedirectToAction("Search", "Search");
+            }
+
+            var model = new AddPassengerDetailsViewModel
+            {
+                FlightId = flightId.Value,
+                BasePrice = flight.BasePrice,
+                Passengers = new List<PassengerDto> { new PassengerDto() }
+            };
+
+            return View(model);
         }
 
-        // POST: /Booking/AddPassengerDetails
+        /// <summary>
+        /// Processes submitted passenger details and assigns seats
+        /// </summary>
+        /// <param name="model">Passenger details view model</param>
+        /// <returns>
+        /// Redirects to ConfirmBooking if successful
+        /// Returns to form with validation errors if invalid
+        /// Redirects to Search with error message if issues occur
+        /// </returns>
         [HttpPost]
-        public IActionResult AddPassengerDetails(List<PassengerDto> passengers)
+        public IActionResult AddPassengerDetails(AddPassengerDetailsViewModel model)
         {
-            if (!TempData.ContainsKey("SelectedFlightId"))
+            _logger.LogInformation("AddPassengerDetails POST action called.");
+
+            // Verify flight selection
+            var flightId = HttpContext.Session.GetInt32("SelectedFlightId");
+            if (!flightId.HasValue)
             {
+                _logger.LogWarning("SelectedFlightId not found in session during AddPassengerDetails POST.");
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
                 return RedirectToAction("Search", "Search");
             }
 
-            if (passengers == null || !passengers.Any())
+            // Retrieve flight with seat availability
+            var flight = _context.Flights
+                .Include(f => f.Seats)
+                .FirstOrDefault(f => f.FlightId == flightId.Value);
+
+            if (flight == null)
             {
-                ModelState.AddModelError("", "Please add at least one passenger.");
-                TempData.Keep("SelectedFlightId");
-                return View();
+                _logger.LogWarning($"Flight with ID {flightId.Value} not found.");
+                TempData["Error"] = "Selected flight not found.";
+                return RedirectToAction("Search", "Search");
             }
 
-            foreach (var passenger in passengers)
+            // Clear ModelState errors for SeatNumber since we assign programmatically
+            for (int i = 0; i < model.Passengers.Count; i++)
             {
-                if (string.IsNullOrWhiteSpace(passenger.FullName))
-                {
-                    ModelState.AddModelError("", "All passengers must have a full name.");
-                    TempData.Keep("SelectedFlightId");
-                    return View();
-                }
+                ModelState.Remove($"Passengers[{i}].SeatNumber");
             }
 
-            TempData["PassengerDetails"] = System.Text.Json.JsonSerializer.Serialize(passengers);
-            TempData.Keep("SelectedFlightId");
+            // Validate model
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Model state is invalid in AddPassengerDetails POST.");
+                model.FlightId = flightId.Value;
+                model.BasePrice = flight.BasePrice;
+                return View(model);
+            }
+
+            // Check seat availability
+            var availableSeats = flight.Seats
+                .Where(s => !s.IsBooked)
+                .ToList();
+
+            if (availableSeats.Count < model.Passengers.Count)
+            {
+                _logger.LogWarning("Not enough available seats for the number of passengers.");
+                TempData["Error"] = "Not enough available seats for the number of passengers. Please select a different flight.";
+                return RedirectToAction("Search", "Search");
+            }
+
+            // Assign seats to passengers
+            for (int i = 0; i < model.Passengers.Count; i++)
+            {
+                var passenger = model.Passengers[i];
+                var seat = availableSeats[i];
+                passenger.SeatNumber = seat.SeatNumber;
+                _logger.LogInformation($"Assigned seat {seat.SeatNumber} to passenger {passenger.FullName}");
+            }
+
+            // Store passenger details in session
+            try
+            {
+                var passengerDetailsJson = System.Text.Json.JsonSerializer.Serialize(model.Passengers);
+                HttpContext.Session.SetString("PassengerDetails", passengerDetailsJson);
+                _logger.LogInformation("Stored PassengerDetails in session.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to store PassengerDetails in session.");
+                TempData["Error"] = "An error occurred while saving passenger details. Please try again.";
+                model.FlightId = flightId.Value;
+                model.BasePrice = flight.BasePrice;
+                return View(model);
+            }
+
             return RedirectToAction("ConfirmBooking");
         }
 
-        // GET: /Booking/ConfirmBooking
-        [Authorize]
+        /// <summary>
+        /// Displays booking confirmation page with all details
+        /// </summary>
+        /// <returns>
+        /// ConfirmBooking view if successful
+        /// Redirects to appropriate steps if data is missing
+        /// </returns>
         public IActionResult ConfirmBooking()
         {
-            if (!TempData.ContainsKey("SelectedFlightId"))
+            _logger.LogInformation("ConfirmBooking GET action called.");
+
+            // Verify required session data exists
+            var flightId = HttpContext.Session.GetInt32("SelectedFlightId");
+            if (!flightId.HasValue)
             {
+                _logger.LogWarning("SelectedFlightId not found in session during ConfirmBooking.");
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
                 return RedirectToAction("Search", "Search");
             }
 
-            if (!TempData.ContainsKey("PassengerDetails"))
+            var passengerDetailsJson = HttpContext.Session.GetString("PassengerDetails");
+            if (string.IsNullOrEmpty(passengerDetailsJson))
             {
+                _logger.LogWarning("PassengerDetails not found in session during ConfirmBooking.");
                 TempData["Error"] = "Passenger details are missing. Please add passenger details.";
                 return RedirectToAction("AddPassengerDetails");
             }
 
-            TempData.Keep("SelectedFlightId");
-            TempData.Keep("PassengerDetails");
-            return RedirectToAction("ProcessBooking");
+            // Retrieve flight details
+            var flight = _context.Flights
+                .FirstOrDefault(f => f.FlightId == flightId.Value);
+
+            if (flight == null)
+            {
+                _logger.LogWarning($"Flight with ID {flightId.Value} not found.");
+                TempData["Error"] = "Selected flight not found.";
+                return RedirectToAction("Search", "Search");
+            }
+
+            // Deserialize passenger details
+            List<PassengerDto> passengers;
+            try
+            {
+                passengers = System.Text.Json.JsonSerializer.Deserialize<List<PassengerDto>>(passengerDetailsJson);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize PassengerDetails in ConfirmBooking.");
+                TempData["Error"] = "An error occurred while retrieving passenger details. Please try again.";
+                return RedirectToAction("AddPassengerDetails");
+            }
+
+            // Prepare confirmation view model
+            var model = new ConfirmBookingViewModel
+            {
+                FlightId = flightId.Value,
+                FlightNumber = flight.FlightNumber,
+                DepartureAirport = flight.DepartureAirport?.Name,
+                ArrivalAirport = flight.ArrivalAirport?.Name,
+                DepartureTime = flight.DepartureTime,
+                ArrivalTime = flight.ArrivalTime,
+                BasePrice = flight.BasePrice,
+                Passengers = passengers
+            };
+
+            return View(model);
         }
 
-        // GET: /Booking/ProcessBooking
+        /// <summary>
+        /// Processes the final booking and payment
+        /// </summary>
+        /// <returns>
+        /// Redirects to booking confirmation page if successful
+        /// Redirects to appropriate steps if issues occur
+        /// </returns>
         [Authorize]
         public async Task<IActionResult> ProcessBooking()
         {
-            Console.WriteLine("Starting ProcessBooking...");
+            _logger.LogInformation("Starting ProcessBooking...");
 
-            if (!TempData.ContainsKey("SelectedFlightId"))
+            // Verify required session data
+            var flightId = HttpContext.Session.GetInt32("SelectedFlightId");
+            if (!flightId.HasValue)
             {
-                Console.WriteLine("SelectedFlightId not found in TempData.");
+                _logger.LogWarning("SelectedFlightId not found in Session.");
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
                 return RedirectToAction("Search", "Search");
             }
 
-            if (!TempData.ContainsKey("PassengerDetails"))
+            var passengerDetailsJson = HttpContext.Session.GetString("PassengerDetails");
+            if (string.IsNullOrEmpty(passengerDetailsJson))
             {
-                Console.WriteLine("PassengerDetails not found in TempData.");
+                _logger.LogWarning("PassengerDetails not found in Session.");
                 TempData["Error"] = "Passenger details are missing. Please add passenger details.";
                 return RedirectToAction("AddPassengerDetails");
             }
 
-            if (!User.Identity.IsAuthenticated)
+            // Deserialize passenger details
+            List<PassengerDto> passengers;
+            try
             {
-                Console.WriteLine("User is not authenticated. Redirecting to login.");
-                return RedirectToAction("Login", "Account");
+                passengers = System.Text.Json.JsonSerializer.Deserialize<List<PassengerDto>>(passengerDetailsJson);
+                _logger.LogInformation($"Number of passengers: {passengers.Count}");
             }
-
-            int flightId = (int)TempData["SelectedFlightId"];
-            Console.WriteLine($"Selected FlightId: {flightId}");
-
-            var passengerDetailsJson = TempData["PassengerDetails"]?.ToString();
-            var passengers = System.Text.Json.JsonSerializer.Deserialize<List<PassengerDto>>(passengerDetailsJson);
-            Console.WriteLine($"Number of passengers: {passengers.Count}");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize PassengerDetails.");
+                TempData["Error"] = "An error occurred while processing passenger details. Please try again.";
+                return RedirectToAction("AddPassengerDetails");
+            }
 
             try
             {
-                Console.WriteLine("Fetching flight details...");
+                // Retrieve flight with seat availability
                 var flight = await _context.Flights
                     .Include(f => f.Seats)
                     .FirstOrDefaultAsync(f => f.FlightId == flightId);
 
                 if (flight == null)
                 {
-                    Console.WriteLine("Flight not found in database.");
+                    _logger.LogWarning("Flight not found in database.");
                     TempData["Error"] = "Selected flight not found.";
                     return RedirectToAction("Search", "Search");
                 }
 
+                // Verify seat availability
                 var availableSeats = flight.Seats.Where(s => !s.IsBooked).ToList();
-                Console.WriteLine($"Available seats: {availableSeats.Count}");
-
-                if (availableSeats.Count < passengers.Count)
-                {
-                    Console.WriteLine("Not enough available seats.");
-                    TempData["Error"] = "Not enough available seats for the number of passengers.";
-                    return RedirectToAction("Search", "Search");
-                }
-
-                Console.WriteLine("Simulating payment...");
-                bool paymentSuccessful = true;
-
-                if (!paymentSuccessful)
-                {
-                    Console.WriteLine("Payment failed.");
-                    TempData["Error"] = "Payment failed. Please try again.";
-                    return RedirectToAction("ConfirmBooking");
-                }
-
-                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                Console.WriteLine($"UserId: {userId ?? "null"}");
-
-                if (string.IsNullOrEmpty(userId))
-                {
-                    Console.WriteLine("UserId is null. Redirecting to login.");
-                    return RedirectToAction("Login", "Account");
-                }
-
-                var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
-                if (!userExists)
-                {
-                    Console.WriteLine($"User with ID {userId} does not exist in the database. Signing out and redirecting to login.");
-                    var signInManager = HttpContext.RequestServices.GetRequiredService<SignInManager<ApplicationUser>>();
-                    await signInManager.SignOutAsync();
-                    TempData["Error"] = "Your session is invalid. Please log in again.";
-                    return RedirectToAction("Login", "Account");
-                }
-
-                Console.WriteLine("Creating booking...");
-                var booking = new Booking
-                {
-                    UserId = userId,
-                    FlightId = flightId,
-                    BookingDate = DateTime.Now,
-                    Status = "Confirmed"
-                };
-
-                _context.Bookings.Add(booking);
-
+                var assignedSeatNumbers = passengers.Select(p => p.SeatNumber).ToList();
                 var bookedSeats = new List<Seat>();
-                Console.WriteLine("Marking seats as booked...");
-                for (int i = 0; i < passengers.Count; i++)
+
+                foreach (var seatNumber in assignedSeatNumbers)
                 {
-                    var seat = availableSeats[i];
+                    var seat = availableSeats.FirstOrDefault(s => s.SeatNumber == seatNumber);
+                    if (seat == null)
+                    {
+                        _logger.LogWarning($"Seat {seatNumber} is not available.");
+                        TempData["Error"] = $"Seat {seatNumber} is no longer available. Please try booking again.";
+                        return RedirectToAction("AddPassengerDetails");
+                    }
                     seat.IsBooked = true;
                     _context.Seats.Update(seat);
                     bookedSeats.Add(seat);
                 }
 
-                Console.WriteLine("Adding passengers...");
+                // Get current user ID
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("UserId is null. Redirecting to login.");
+                    return RedirectToAction("Login", "Account");
+                }
+
+                // Create booking record
+                var booking = new Booking
+                {
+                    UserId = userId,
+                    FlightId = flightId.Value,
+                    BookingDate = DateTime.UtcNow,
+                    Status = "Confirmed",
+                    PNR = await PNRGenerator.GenerateUniquePNR(_context)
+                };
+
+                _context.Bookings.Add(booking);
+
+                // Add passengers to booking
                 for (int i = 0; i < passengers.Count; i++)
                 {
                     var passengerDto = passengers[i];
@@ -260,28 +428,138 @@ namespace FlightReservationSystem.Controllers
                     _context.Passengers.Add(passenger);
                 }
 
-                Console.WriteLine("Saving changes to database...");
+                // Save all changes
                 await _context.SaveChangesAsync();
 
-                Console.WriteLine("Booking successful.");
-                TempData["BookingId"] = booking.BookingId;
-                TempData["ConfirmationMessage"] = $"Booking confirmed! Your booking ID is {booking.BookingId}.";
-                return RedirectToAction("BookingConfirmation", "Confirmation");
+                // Clear session after successful booking
+                HttpContext.Session.Remove("SelectedFlightId");
+                HttpContext.Session.Remove("PassengerDetails");
+
+                return RedirectToAction("BookingConfirmation", "Confirmation", new { bookingId = booking.BookingId });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in ProcessBooking: {ex.Message}");
-                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
-                }
+                _logger.LogError(ex, "Error in ProcessBooking");
                 TempData["Error"] = "An error occurred while processing your booking. Please try again.";
                 return RedirectToAction("Search", "Search");
             }
         }
 
-       
+        /// <summary>
+        /// Retrieves booking details by ID
+        /// </summary>
+        /// <param name="id">Booking ID</param>
+        /// <returns>
+        /// Booking details view if authorized and found
+        /// Redirects to ManageBookings with error message if issues occur
+        /// </returns>
+        [Authorize]
+        public async Task<IActionResult> GetBooking(int id)
+        {
+            try
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+
+                // Retrieve booking with all related data
+                var booking = await _context.Bookings
+                    .Include(b => b.Flight)
+                        .ThenInclude(f => f.DepartureAirport)
+                    .Include(b => b.Flight)
+                        .ThenInclude(f => f.ArrivalAirport)
+                    .Include(b => b.Flight)
+                        .ThenInclude(f => f.Airline)
+                    .Include(b => b.Passengers)
+                    .FirstOrDefaultAsync(b => b.BookingId == id);
+
+                if (booking == null)
+                {
+                    TempData["Error"] = "Booking not found.";
+                    return RedirectToAction("ManageBookings");
+                }
+
+                // Ensure user can only view their own bookings
+                if (booking.UserId != userId)
+                {
+                    TempData["Error"] = "You are not authorized to view this booking.";
+                    return RedirectToAction("ManageBookings");
+                }
+
+                return View(booking);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving booking");
+                TempData["Error"] = "An error occurred while retrieving the booking.";
+                return RedirectToAction("ManageBookings");
+            }
+        }
+
+        /// <summary>
+        /// Displays PNR lookup form
+        /// </summary>
+        /// <returns>PNR lookup view</returns>
+        public IActionResult ByPNR()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// Looks up booking by PNR number
+        /// </summary>
+        /// <param name="pnr">PNR reference number</param>
+        /// <returns>
+        /// Booking details view if found
+        /// Returns to form with error message if not found or error occurs
+        /// </returns>
+        [HttpPost]
+        public async Task<IActionResult> LookupByPNR(string pnr)
+        {
+            if (string.IsNullOrWhiteSpace(pnr))
+            {
+                TempData["Error"] = "Please enter a valid booking reference number.";
+                return RedirectToAction("ByPNR");
+            }
+
+            try
+            {
+                // Retrieve booking by PNR with all related data
+                var booking = await _context.Bookings
+                    .Include(b => b.Flight)
+                        .ThenInclude(f => f.DepartureAirport)
+                    .Include(b => b.Flight)
+                        .ThenInclude(f => f.ArrivalAirport)
+                    .Include(b => b.Flight)
+                        .ThenInclude(f => f.Airline)
+                    .Include(b => b.Passengers)
+                    .FirstOrDefaultAsync(b => b.PNR == pnr.Trim().ToUpper());
+
+                if (booking == null)
+                {
+                    TempData["Error"] = "No booking found with the provided reference number.";
+                    return RedirectToAction("ByPNR");
+                }
+
+                return View("BookingDetails", booking);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error looking up booking by PNR");
+                TempData["Error"] = "An error occurred while looking up the booking.";
+                return RedirectToAction("ByPNR");
+            }
+        }
+
+        /// <summary>
+        /// Displays all bookings for the current user
+        /// </summary>
+        /// <returns>
+        /// ManageBookings view with user's bookings
+        /// Redirects to login if not authenticated
+        /// </returns>
         [Authorize]
         public async Task<IActionResult> ManageBookings()
         {
@@ -291,6 +569,7 @@ namespace FlightReservationSystem.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            // Retrieve all bookings for current user
             var bookings = await _context.Bookings
                 .Include(b => b.Flight)
                     .ThenInclude(f => f.DepartureAirport)

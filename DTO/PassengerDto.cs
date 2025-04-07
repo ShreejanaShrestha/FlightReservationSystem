@@ -1,13 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
-
+﻿// FlightReservationSystem/DTO/PassengerDto.cs
 namespace FlightReservationSystem.DTO
 {
     public class PassengerDto
     {
-        [Required, MaxLength(100)]
+        public int PassengerId { get; set; }
+        public int BookingId { get; set; }
         public string FullName { get; set; }
-
-        [MaxLength(20)]
         public string PassportNumber { get; set; }
+        public string SeatNumber { get; set; }
     }
 }

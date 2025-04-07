@@ -1,21 +1,65 @@
-﻿@model dynamic
+﻿@* FlightReservationSystem/Views/Confirmation/BookingConfirmation.cshtml *@
+@model FlightReservationSystem.Controllers.BookingConfirmationViewModel
 
 @{
     ViewData["Title"] = "Booking Confirmation";
+    var totalPrice = Model.BasePrice * Model.Passengers.Count;
 }
 
-<h2>Booking Confirmation</h2>
-
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">@TempData["Error"]</div>
-}
+<h1>Booking Confirmation</h1>
 
 @if (ViewBag.ConfirmationMessage != null)
 {
-    <div class="alert alert-success">@ViewBag.ConfirmationMessage</div>
+    <div class="alert alert-success" role="alert">
+        @ViewBag.ConfirmationMessage
+    </div>
 }
 
-<div class="mt-3">
-    <a asp-controller="Search" asp-action="Search" class="btn btn-primary">Book Another Flight</a>
-</div>
+<h3>Booking Details</h3>
+<dl class="row">
+    <dt class="col-sm-3">PNR</dt>
+    <dd class="col-sm-9">@Model.PNR</dd>
+    <dt class="col-sm-3">Booking ID</dt>
+    <dd class="col-sm-9">@Model.BookingId</dd>
+    <dt class="col-sm-3">Flight Number</dt>
+    <dd class="col-sm-9">@Model.FlightNumber</dd>
+    <dt class="col-sm-3">Airline</dt>
+    <dd class="col-sm-9">@Model.Airline</dd>
+    <dt class="col-sm-3">Departure Airport</dt>
+    <dd class="col-sm-9">@Model.DepartureAirport</dd>
+    <dt class="col-sm-3">Arrival Airport</dt>
+    <dd class="col-sm-9">@Model.ArrivalAirport</dd>
+    <dt class="col-sm-3">Departure Time</dt>
+    <dd class="col-sm-9">@Model.DepartureTime.ToString("g")</dd>
+    <dt class="col-sm-3">Arrival Time</dt>
+    <dd class="col-sm-9">@Model.ArrivalTime.ToString("g")</dd>
+    <dt class="col-sm-3">Base Price per Passenger</dt>
+    <dd class="col-sm-9">$@Model.BasePrice</dd>
+    <dt class="col-sm-3">Number of Passengers</dt>
+    <dd class="col-sm-9">@Model.Passengers.Count</dd>
+    <dt class="col-sm-3">Total Price</dt>
+    <dd class="col-sm-9">$@totalPrice</dd>
+</dl>
+
+<h3>Passengers</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Full Name</th>
+            <th>Passport Number</th>
+            <th>Seat Number</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var passenger in Model.Passengers)
+        {
+            <tr>
+                <td>@passenger.FullName</td>
+                <td>@passenger.PassportNumber</td>
+                <td>@passenger.SeatNumber</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-controller="Search" asp-action="Search" class="btn btn-primary">Back to Search</a>

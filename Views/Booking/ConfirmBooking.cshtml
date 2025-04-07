@@ -1,0 +1,93 @@
+﻿@* FlightReservationSystem/Views/Booking/ConfirmBooking.cshtml *@
+@model FlightReservationSystem.DTO.ConfirmBookingViewModel
+
+@{
+    ViewData["Title"] = "Confirm Booking";
+}
+
+<style>
+    .flight-details, .passenger-details, .price-details {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+    }
+
+        .flight-details h4, .passenger-details h4, .price-details h4 {
+            margin-bottom: 15px;
+        }
+
+        .passenger-details table {
+            width: 100%;
+        }
+
+        .passenger-details th, .passenger-details td {
+            padding: 8px;
+            text-align: left;
+        }
+</style>
+
+<h2>Confirm Your Booking</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<!-- Flight Details -->
+<div class="flight-details">
+    <h4>Flight Details</h4>
+    <dl class="row">
+        <dt class="col-sm-3">Flight Number</dt>
+        <dd class="col-sm-9">@Model.FlightNumber</dd>
+        <dt class="col-sm-3">Departure</dt>
+        <dd class="col-sm-9">@Model.DepartureAirport at @Model.DepartureTime</dd>
+        <dt class="col-sm-3">Arrival</dt>
+        <dd class="col-sm-9">@Model.ArrivalAirport at @Model.ArrivalTime</dd>
+    </dl>
+</div>
+
+<!-- Passenger Details -->
+<div class="passenger-details">
+    <h4>Passenger Details</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Full Name</th>
+                <th>Passport Number</th>
+                <th>Assigned Seat</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Passengers.Count; i++)
+            {
+                <tr>
+                    <td>@Model.Passengers[i].FullName</td>
+                    <td>@(Model.Passengers[i].PassportNumber ?? "N/A")</td>
+                    <td>@Model.Passengers[i].SeatNumber</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Price Details -->
+<div class="price-details">
+    <h4>Price Details</h4>
+    <dl class="row">
+        <dt class="col-sm-6">Base Price per Passenger</dt>
+        <dd class="col-sm-6">$@Model.BasePrice</dd>
+        <dt class="col-sm-6">Number of Passengers</dt>
+        <dd class="col-sm-6">@Model.Passengers.Count</dd>
+        <dt class="col-sm-6">Total Price</dt>
+        <dd class="col-sm-6">$@(Model.BasePrice * Model.Passengers.Count)</dd>
+    </dl>
+</div>
+
+<div class="mt-3">
+    <form asp-action="ProcessBooking" method="get">
+        <button type="submit" class="btn btn-primary">Confirm Booking</button>
+    </form>
+    <a asp-action="AddPassengerDetails" class="btn btn-secondary">Back to Passenger Details</a>
+</div>

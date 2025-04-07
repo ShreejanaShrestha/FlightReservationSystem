@@ -6,10 +6,40 @@
     <title>@ViewData["Title"] - Flight Reservation System</title>
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+       
+
+      
+
+        .navbar {
+            background-color: var(--primary-color);
+        }
+
+        .navbar-brand, .nav-link {
+            color: var(--accent-color) !important;
+        }
+
+            
+
+       
+
+          
+
+        .footer {
+            background-color: var(--primary-color);
+            color: var(--accent-color);
+            padding: 1rem 0;
+        }
+
+            .footer a {
+                color: var(--accent-color);
+                margin: 0 0.5rem;
+            }
+    </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+        <nav class="navbar navbar-expand-lg">
             <div class="container">
                 <a class="navbar-brand" asp-controller="Search" asp-action="Search">Flight Reservation System</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -18,8 +48,12 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
+                            <a class="nav-link active" asp-controller="FlightStatus" asp-action="Index">Flight Status</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" asp-controller="Search" asp-action="Search">Search Flights</a>
                         </li>
+                       
                         <partial name="_LoginPartial" />
                     </ul>
                 </div>
@@ -27,15 +61,23 @@
         </nav>
     </header>
 
+
     <div class="container mt-4">
         <main role="main">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted mt-4">
+    <footer class="footer text-center mt-4">
         <div class="container">
-            &copy; 2025 - Flight Reservation System
+            &copy; 2025 - Flight Reservation System |
+            <a asp-controller="Home" asp-action="Privacy">Privacy Policy</a> |
+            <a asp-controller="Home" asp-action="Terms">Terms of Service</a>
+            <div class="mt-2">
+                <a href="your-facebook-link" target="_blank"><i class="fab fa-facebook-f"></i></a>
+                <a href="your-twitter-link" target="_blank"><i class="fab fa-twitter"></i></a>
+                <a href="your-instagram-link" target="_blank"><i class="fab fa-instagram"></i></a>
+            </div>
         </div>
     </footer>
 

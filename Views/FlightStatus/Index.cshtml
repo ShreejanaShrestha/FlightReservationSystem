@@ -1,0 +1,37 @@
+﻿@model FlightReservationSystem.Controllers.FlightStatusRequest
+
+@{
+    ViewData["Title"] = "Check Flight Status";
+}
+
+<h2>Check Flight Status</h2>
+
+<form asp-action="CheckFlightStatusForm" method="post">
+    <div class="form-group">
+        <label asp-for="PNR"></label>
+        <input asp-for="PNR" class="form-control" />
+        <span asp-validation-for="PNR" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="PassportNumber"></label>
+        <input asp-for="PassportNumber" class="form-control" />
+        <span asp-validation-for="PassportNumber" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-2">Check Status</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="text-danger mt-3">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <p>@error.ErrorMessage</p>
+        }
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

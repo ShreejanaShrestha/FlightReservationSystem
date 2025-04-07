@@ -1,9 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿// FlightReservationSystem/Controllers/AdminController.cs
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using FlightReservationSystem.Data;
 using FlightReservationSystem.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace FlightReservationSystem.Controllers
 {
@@ -13,18 +19,25 @@ namespace FlightReservationSystem.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-      
+        private readonly ILogger<AdminController> _logger;
+
         public AdminController(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<AdminController> logger)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
+            _logger = logger;
         }
+
+        // GET: /Admin
         public async Task<IActionResult> Index()
         {
+            _logger.LogInformation("Admin Index action called.");
+
             var viewModel = new AdminPanelViewModel
             {
                 Flights = await _context.Flights
@@ -44,17 +57,20 @@ namespace FlightReservationSystem.Controllers
             return View(viewModel);
         }
 
+        // POST: /Admin/ResetDatabase
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetDatabase()
         {
+            _logger.LogInformation("ResetDatabase action called.");
+
             try
             {
                 // Sign out the user
                 await _signInManager.SignOutAsync();
-                Console.WriteLine("Signed out any existing user sessions.");
+                _logger.LogInformation("Signed out any existing user sessions.");
 
-                // Clear all data
-                _context.ClearAllData();
+               
 
                 // Seed Airports
                 var airports = new List<Airport>
@@ -66,6 +82,7 @@ namespace FlightReservationSystem.Controllers
                 };
                 _context.Airports.AddRange(airports);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Seeded airports.");
 
                 // Seed Airlines
                 var airlines = new List<Airline>
@@ -76,6 +93,7 @@ namespace FlightReservationSystem.Controllers
                 };
                 _context.Airlines.AddRange(airlines);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Seeded airlines.");
 
                 // Seed Flights with Seats
                 var flights = new List<Flight>
@@ -130,34 +148,39 @@ namespace FlightReservationSystem.Controllers
                 };
                 _context.Flights.AddRange(flights);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Seeded flights with seats.");
 
                 // Seed a test user
                 var testUser = new ApplicationUser
                 {
                     UserName = "testuser@example.com",
                     Email = "testuser@example.com",
-                    EmailConfirmed = true
+                    EmailConfirmed = true,
+                    FirstName = "Test",
+                    LastName = "User"
                 };
                 var result = await _userManager.CreateAsync(testUser, "Test@1234");
                 if (result.Succeeded)
                 {
-                    // Assign the user to the Admin role
                     await _userManager.AddToRoleAsync(testUser, "Admin");
-                    Console.WriteLine("Test user created and assigned to Admin role: testuser@example.com (Password: Test@1234)");
+                    _logger.LogInformation("Test user created and assigned to Admin role: testuser@example.com (Password: Test@1234)");
                 }
                 else
                 {
-                    Console.WriteLine("Failed to create test user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+                    _logger.LogError("Failed to create test user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+                    TempData["Error"] = "Failed to create test user: " + string.Join(", ", result.Errors.Select(e => e.Description));
+                    return RedirectToAction("Index");
                 }
 
                 TempData["Message"] = "Database reset successfully. Please log in again.";
-                return RedirectToAction("Search", "Flight");
+                _logger.LogInformation("Database reset successfully.");
+                return RedirectToAction("Login", "Account");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error resetting database: {ex.Message}");
+                _logger.LogError(ex, "Error resetting database.");
                 TempData["Error"] = "An error occurred while resetting the database. Please try again.";
-                return RedirectToAction("Search", "Flight");
+                return RedirectToAction("Index");
             }
         }
     }
