@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using FlightReservationSystem.Data;
 using FlightReservationSystem.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlightReservationSystem.Controllers
 {
@@ -12,7 +13,7 @@ namespace FlightReservationSystem.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-
+      
         public AdminController(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
@@ -21,6 +22,26 @@ namespace FlightReservationSystem.Controllers
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
+        }
+        public async Task<IActionResult> Index()
+        {
+            var viewModel = new AdminPanelViewModel
+            {
+                Flights = await _context.Flights
+                    .Include(f => f.Airline)
+                    .Include(f => f.DepartureAirport)
+                    .Include(f => f.ArrivalAirport)
+                    .ToListAsync(),
+                Airports = await _context.Airports.ToListAsync(),
+                Airlines = await _context.Airlines.ToListAsync(),
+                Bookings = await _context.Bookings
+                    .Include(b => b.Flight)
+                    .Include(b => b.Passengers)
+                    .ToListAsync(),
+                Users = await _userManager.Users.ToListAsync()
+            };
+
+            return View(viewModel);
         }
 
         [HttpPost]

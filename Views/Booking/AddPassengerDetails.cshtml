@@ -23,7 +23,7 @@
     </div>
 }
 
-<form asp-action="AddPassengerDetails" method="post">
+<form asp-controller="Booking" asp-action="AddPassengerDetails" method="post">
     <div id="passenger-list">
         <div class="passenger-entry mb-3">
             <h5>Passenger 1</h5>
@@ -42,7 +42,7 @@
 
     <div class="mt-3">
         <button type="submit" class="btn btn-primary">Proceed to Booking</button>
-        <a asp-action="ReviewFlight" class="btn btn-secondary">Back to Review</a>
+        <a asp-controller="Booking" asp-action="ReviewFlight" class="btn btn-secondary">Back to Review</a>
     </div>
 </form>
 

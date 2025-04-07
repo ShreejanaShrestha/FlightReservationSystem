@@ -49,7 +49,7 @@ else
                     <td>$@flight.BasePrice</td>
                     <td>@flight.Seats.Count(s => !s.IsBooked)</td>
                     <td>
-                        <form asp-action="SelectFlight" method="post">
+                        <form asp-controller="Booking" asp-action="SelectFlight" method="post">
                             <input type="hidden" name="flightId" value="@flight.FlightId" />
                             <button type="submit" class="btn btn-primary">Select</button>
                         </form>
@@ -61,5 +61,5 @@ else
 }
 
 <div>
-    <a asp-action="Search" class="btn btn-secondary">Search Again</a>
+    <a asp-controller="Search" asp-action="Search" class="btn btn-secondary">Search Again</a>
 </div>

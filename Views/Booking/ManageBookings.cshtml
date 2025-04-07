@@ -1,0 +1,59 @@
+﻿@model List<FlightReservationSystem.Models.Booking>
+
+<h2>Manage Bookings</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (TempData["ConfirmationMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["ConfirmationMessage"]</div>
+}
+
+@if (Model.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Booking ID</th>
+                <th>Flight Number</th>
+                <th>Airline</th>
+                <th>Departure</th>
+                <th>Arrival</th>
+                <th>Booking Date</th>
+                <th>Status</th>
+                <th>Passengers</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var booking in Model)
+            {
+                <tr>
+                    <td>@booking.BookingId</td>
+                    <td>@booking.Flight.FlightNumber</td>
+                    <td>@booking.Flight.Airline.Name</td>
+                    <td>@booking.Flight.DepartureAirport.Name (@booking.Flight.DepartureAirport.Code)</td>
+                    <td>@booking.Flight.ArrivalAirport.Name (@booking.Flight.ArrivalAirport.Code)</td>
+                    <td>@booking.BookingDate.ToString("g")</td>
+                    <td>@booking.Status</td>
+                    <td>
+                        <ul>
+                            @foreach (var passenger in booking.Passengers)
+                            {
+                                <li>@passenger.FullName (Seat: @passenger.SeatNumber)</li>
+                            }
+                        </ul>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>You have no bookings.</p>
+}
+
+<a asp-controller="Search" asp-action="Search" class="btn btn-primary">Search Again</a>

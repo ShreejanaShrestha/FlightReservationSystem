@@ -1,0 +1,519 @@
+﻿@* FlightReservationSystem/Views/Admin/Index.cshtml *@
+@{
+    ViewData["Title"] = "Admin Panel";
+}
+
+<h1>Admin Panel</h1>
+
+<p>Welcome to the Admin Panel. Here you can manage flights, airports, airlines, and view booking details.</p>
+
+<!-- Flights Section -->
+<h2>Flights</h2>
+<p><a href="#" onclick="showCreateFlightForm()" class="btn btn-primary">Create New Flight</a></p>
+<div id="flightsTable">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Flight Number</th>
+                <th>Airline</th>
+                <th>Departure Airport</th>
+                <th>Arrival Airport</th>
+                <th>Departure Time</th>
+                <th>Arrival Time</th>
+                <th>Base Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="flightsBody"></tbody>
+    </table>
+</div>
+
+<!-- Airports Section -->
+<h2>Airports</h2>
+<p><a href="#" onclick="showCreateAirportForm()" class="btn btn-primary">Create New Airport</a></p>
+<div id="airportsTable">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>City</th>
+                <th>Country</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="airportsBody"></tbody>
+    </table>
+</div>
+
+<!-- Modal for Create/Edit Forms -->
+<div class="modal fade" id="crudModal" tabindex="-1" role="dialog" aria-labelledby="crudModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="crudModalLabel"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body" id="crudModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveButton">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            loadFlights();
+            loadAirports();
+        });
+
+        // Load Flights
+        function loadFlights() {
+            fetch('/api/flights')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = $('#flightsBody');
+                    tbody.empty();
+                    if (data && data.length > 0) {
+                        data.forEach(flight => {
+                            tbody.append(`
+                                        <tr>
+                                            <td>${flight.flightNumber}</td>
+                                            <td>${flight.airline.name}</td>
+                                            <td>${flight.departureAirport.name} (${flight.departureAirport.code})</td>
+                                            <td>${flight.arrivalAirport.name} (${flight.arrivalAirport.code})</td>
+                                            <td>${new Date(flight.departureTime).toLocaleString()}</td>
+                                            <td>${new Date(flight.arrivalTime).toLocaleString()}</td>
+                                            <td>$${flight.basePrice}</td>
+                                            <td>
+                                                <a href="#" onclick="showEditFlightForm(${flight.flightId})" class="btn btn-sm btn-warning">Edit</a>
+                                                <a href="#" onclick="deleteFlight(${flight.flightId})" class="btn btn-sm btn-danger">Delete</a>
+                                                <a href="#" onclick="viewFlightBookings(${flight.flightId})" class="btn btn-sm btn-info">View Bookings</a>
+                                            </td>
+                                        </tr>
+                                    `);
+                        });
+                    } else {
+                        tbody.append('<tr><td colspan="8">No flights available.</td></tr>');
+                    }
+                })
+                .catch(error => console.error('Error loading flights:', error));
+        }
+
+        // Load Airports
+        function loadAirports() {
+            fetch('/api/airports')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = $('#airportsBody');
+                    tbody.empty();
+                    if (data && data.length > 0) {
+                        data.forEach(airport => {
+                            tbody.append(`
+                                        <tr>
+                                            <td>${airport.name}</td>
+                                            <td>${airport.code}</td>
+                                            <td>${airport.city}</td>
+                                            <td>${airport.country}</td>
+                                            <td>
+                                                <a href="#" onclick="showEditAirportForm(${airport.airportId})" class="btn btn-sm btn-warning">Edit</a>
+                                                <a href="#" onclick="deleteAirport(${airport.airportId})" class="btn btn-sm btn-danger">Delete</a>
+                                            </td>
+                                        </tr>
+                                    `);
+                        });
+                    } else {
+                        tbody.append('<tr><td colspan="5">No airports available.</td></tr>');
+                    }
+                })
+                .catch(error => console.error('Error loading airports:', error));
+        }
+
+        // CRUD Functions for Flights
+        function showCreateFlightForm() {
+            fetch('/api/airlines')
+                .then(response => response.json())
+                .then(airlines => {
+                    fetch('/api/airports')
+                        .then(response => response.json())
+                        .then(airports => {
+                            $('#crudModalLabel').text('Create Flight');
+                            $('#crudModalBody').html(`
+                                        <div class="form-group">
+                                            <label>Flight Number</label>
+                                            <input type="text" id="flightNumber" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Airline</label>
+                                            <select id="airlineId" class="form-control" required>
+                                                <option value="">Select Airline</option>
+                                                ${airlines.map(a => `<option value="${a.airlineId}">${a.name}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Departure Airport</label>
+                                            <select id="departureAirportId" class="form-control" required>
+                                                <option value="">Select Airport</option>
+                                                ${airports.map(a => `<option value="${a.airportId}">${a.name}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Arrival Airport</label>
+                                            <select id="arrivalAirportId" class="form-control" required>
+                                                <option value="">Select Airport</option>
+                                                ${airports.map(a => `<option value="${a.airportId}">${a.name}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Departure Time</label>
+                                            <input type="datetime-local" id="departureTime" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Arrival Time</label>
+                                            <input type="datetime-local" id="arrivalTime" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Base Price</label>
+                                            <input type="number" id="basePrice" class="form-control" required>
+                                        </div>
+                                    `);
+                            $('#saveButton').off('click').on('click', function () {
+                                const flight = {
+                                    flightNumber: $('#flightNumber').val(),
+                                    airlineId: $('#airlineId').val(),
+                                    departureAirportId: $('#departureAirportId').val(),
+                                    arrivalAirportId: $('#arrivalAirportId').val(),
+                                    departureTime: $('#departureTime').val(),
+                                    arrivalTime: $('#arrivalTime').val(),
+                                    basePrice: $('#basePrice').val()
+                                };
+                                fetch('/api/flights', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(flight)
+                                })
+                                    .then(response => {
+                                        if (response.ok) {
+                                            $('#crudModal').modal('hide');
+                                            loadFlights();
+                                        } else {
+                                            alert('Error creating flight');
+                                        }
+                                    });
+                            });
+                            $('#crudModal').modal('show');
+                        });
+                });
+        }
+
+        function showEditFlightForm(id) {
+            fetch(`/api/flights/${id}`)
+                .then(response => response.json())
+                .then(flight => {
+                    fetch('/api/airlines')
+                        .then(response => response.json())
+                        .then(airlines => {
+                            fetch('/api/airports')
+                                .then(response => response.json())
+                                .then(airports => {
+                                    $('#crudModalLabel').text('Edit Flight');
+                                    $('#crudModalBody').html(`
+                                                <div class="form-group">
+                                                    <label>Flight Number</label>
+                                                    <input type="text" id="flightNumber" class="form-control" value="${flight.flightNumber}" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Airline</label>
+                                                    <select id="airlineId" class="form-control" required>
+                                                        <option value="">Select Airline</option>
+                                                        ${airlines.map(a => `<option value="${a.airlineId}" ${a.airlineId == flight.airlineId ? 'selected' : ''}>${a.name}</option>`).join('')}
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Departure Airport</label>
+                                                    <select id="departureAirportId" class="form-control" required>
+                                                        <option value="">Select Airport</option>
+                                                        ${airports.map(a => `<option value="${a.airportId}" ${a.airportId == flight.departureAirportId ? 'selected' : ''}>${a.name}</option>`).join('')}
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Arrival Airport</label>
+                                                    <select id="arrivalAirportId" class="form-control" required>
+                                                        <option value="">Select Airport</option>
+                                                        ${airports.map(a => `<option value="${a.airportId}" ${a.airportId == flight.arrivalAirportId ? 'selected' : ''}>${a.name}</option>`).join('')}
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Departure Time</label>
+                                                    <input type="datetime-local" id="departureTime" class="form-control" value="${flight.departureTime.replace('Z', '')}" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Arrival Time</label>
+                                                    <input type="datetime-local" id="arrivalTime" class="form-control" value="${flight.arrivalTime.replace('Z', '')}" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Base Price</label>
+                                                    <input type="number" id="basePrice" class="form-control" value="${flight.basePrice}" required>
+                                                </div>
+                                            `);
+                                    $('#saveButton').off('click').on('click', function () {
+                                        const updatedFlight = {
+                                            flightId: id,
+                                            flightNumber: $('#flightNumber').val(),
+                                            airlineId: $('#airlineId').val(),
+                                            departureAirportId: $('#departureAirportId').val(),
+                                            arrivalAirportId: $('#arrivalAirportId').val(),
+                                            departureTime: $('#departureTime').val(),
+                                            arrivalTime: $('#arrivalTime').val(),
+                                            basePrice: $('#basePrice').val()
+                                        };
+                                        fetch(`/api/flights/${id}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(updatedFlight)
+                                        })
+                                            .then(response => {
+                                                if (response.ok) {
+                                                    $('#crudModal').modal('hide');
+                                                    loadFlights();
+                                                } else {
+                                                    alert('Error updating flight');
+                                                }
+                                            });
+                                    });
+                                    $('#crudModal').modal('show');
+                                });
+                        });
+                });
+        }
+
+        function deleteFlight(id) {
+            if (confirm('Are you sure you want to delete this flight?')) {
+                fetch(`/api/flights/${id}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            loadFlights();
+                        } else {
+                            alert('Error deleting flight');
+                        }
+                    });
+            }
+        }
+
+        function viewFlightBookings(flightId) {
+            fetch(`/api/flights/${flightId}/bookings`)
+                .then(response => response.json())
+                .then(data => {
+                    $('#crudModalLabel').text(`Bookings for Flight ${data.flight.flightNumber}`);
+
+                    // Flight Details Section
+                    let flightDetailsHtml = '<h3>Flight Details</h3>';
+                    flightDetailsHtml += `
+                                <dl class="row">
+                                    <dt class="col-sm-3">Flight Number</dt>
+                                    <dd class="col-sm-9">${data.flight.flightNumber}</dd>
+                                    <dt class="col-sm-3">Airline</dt>
+                                    <dd class="col-sm-9">${data.flight.airline.name}</dd>
+                                    <dt class="col-sm-3">Departure Airport</dt>
+                                    <dd class="col-sm-9">${data.flight.departureAirport.name} (${data.flight.departureAirport.code})</dd>
+                                    <dt class="col-sm-3">Arrival Airport</dt>
+                                    <dd class="col-sm-9">${data.flight.arrivalAirport.name} (${data.flight.arrivalAirport.code})</dd>
+                                    <dt class="col-sm-3">Departure Time</dt>
+                                    <dd class="col-sm-9">${new Date(data.flight.departureTime).toLocaleString()}</dd>
+                                    <dt class="col-sm-3">Arrival Time</dt>
+                                    <dd class="col-sm-9">${new Date(data.flight.arrivalTime).toLocaleString()}</dd>
+                                    <dt class="col-sm-3">Base Price</dt>
+                                    <dd class="col-sm-9">$${data.flight.basePrice}</dd>
+                                </dl>
+                            `;
+
+                    // Bookings Section
+                    let bookingsHtml = '<h3>Bookings</h3>';
+                    if (data.bookings && data.bookings.length > 0) {
+                        bookingsHtml += `
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Booking ID</th>
+                                                <th>User ID</th>
+                                                <th>Booking Date</th>
+                                                <th>Status</th>
+                                                <th>Passengers</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.bookings.map(b => `
+                                                <tr>
+                                                    <td>${b.bookingId}</td>
+                                                    <td>${b.userId}</td>
+                                                    <td>${new Date(b.bookingDate).toLocaleString()}</td>
+                                                    <td>${b.status}</td>
+                                                    <td>${b.passengers.length}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                `;
+                    } else {
+                        bookingsHtml += '<p>No bookings for this flight.</p>';
+                    }
+
+                    // Passengers Section
+                    let passengersHtml = '<h3>Passengers</h3>';
+                    if (data.passengers && data.passengers.length > 0) {
+                        passengersHtml += `
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Passenger ID</th>
+                                                <th>Full Name</th>
+                                                <th>Passport Number</th>
+                                                <th>Seat Number</th>
+                                                <th>Booking ID</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.passengers.map(p => `
+                                                <tr>
+                                                    <td>${p.passengerId}</td>
+                                                    <td>${p.fullName}</td>
+                                                    <td>${p.passportNumber}</td>
+                                                    <td>${p.seatNumber}</td>
+                                                    <td>${p.bookingId}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                `;
+                    } else {
+                        passengersHtml += '<p>No passengers for this flight.</p>';
+                    }
+
+                    // Combine all sections and display in the modal
+                    $('#crudModalBody').html(flightDetailsHtml + bookingsHtml + passengersHtml);
+                    $('#saveButton').hide();
+                    $('#crudModal').modal('show');
+                })
+                .catch(error => console.error('Error loading flight bookings:', error));
+        }
+
+        // CRUD Functions for Airports
+        function showCreateAirportForm() {
+            $('#crudModalLabel').text('Create Airport');
+            $('#crudModalBody').html(`
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" id="airportName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Code</label>
+                            <input type="text" id="airportCode" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>City</label>
+                            <input type="text" id="airportCity" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Country</label>
+                            <input type="text" id="airportCountry" class="form-control" required>
+                        </div>
+                    `);
+            $('#saveButton').show().off('click').on('click', function () {
+                const airport = {
+                    name: $('#airportName').val(),
+                    code: $('#airportCode').val(),
+                    city: $('#airportCity').val(),
+                    country: $('#airportCountry').val()
+                };
+                fetch('/api/airports', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(airport)
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            $('#crudModal').modal('hide');
+                            loadAirports();
+                        } else {
+                            alert('Error creating airport');
+                        }
+                    });
+            });
+            $('#crudModal').modal('show');
+        }
+
+        function showEditAirportForm(id) {
+            fetch(`/api/airports/${id}`)
+                .then(response => response.json())
+                .then(airport => {
+                    $('#crudModalLabel').text('Edit Airport');
+                    $('#crudModalBody').html(`
+                                <div class="form-group">
+                                    <label>Name</label>
+                                    <input type="text" id="airportName" class="form-control" value="${airport.name}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Code</label>
+                                    <input type="text" id="airportCode" class="form-control" value="${airport.code}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>City</label>
+                                    <input type="text" id="airportCity" class="form-control" value="${airport.city}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Country</label>
+                                    <input type="text" id="airportCountry" class="form-control" value="${airport.country}" required>
+                                </div>
+                            `);
+                    $('#saveButton').show().off('click').on('click', function () {
+                        const updatedAirport = {
+                            airportId: id,
+                            name: $('#airportName').val(),
+                            code: $('#airportCode').val(),
+                            city: $('#airportCity').val(),
+                            country: $('#airportCountry').val()
+                        };
+                        fetch(`/api/airports/${id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updatedAirport)
+                        })
+                            .then(response => {
+                                if (response.ok) {
+                                    $('#crudModal').modal('hide');
+                                    loadAirports();
+                                } else {
+                                    alert('Error updating airport');
+                                }
+                            });
+                    });
+                    $('#crudModal').modal('show');
+                });
+        }
+
+        function deleteAirport(id) {
+            if (confirm('Are you sure you want to delete this airport?')) {
+                fetch(`/api/airports/${id}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            loadAirports();
+                        } else {
+                            alert('Error deleting airport');
+                        }
+                    });
+            }
+        }
+    </script>
+}

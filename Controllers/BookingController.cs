@@ -1,99 +1,26 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using FlightReservationSystem.Models;
 using FlightReservationSystem.Data;
 using FlightReservationSystem.DTO;
-using System.Net.Http;
-using System.Net.Http.Json;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-
+using FlightReservationSystem.Models;
 
 namespace FlightReservationSystem.Controllers
 {
-    public class FlightController : Controller
+    public class BookingController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly HttpClient _httpClient;
 
-        public FlightController(ApplicationDbContext context, IHttpClientFactory httpClientFactory)
+        public BookingController(ApplicationDbContext context)
         {
             _context = context;
-            _httpClient = httpClientFactory.CreateClient();
-            _httpClient.BaseAddress = new Uri("http://localhost:5106/");
         }
 
-        // GET: /Flight/Search
-        public IActionResult Search()
-        {
-            ViewBag.Airports = _context.Airports.ToList();
-            return View();
-        }
-
-        // POST: /Flight/Search
-        [HttpPost]
-        public async Task<IActionResult> Search(int departureAirportId, int arrivalAirportId, DateTime? date)
-        {
-            // Log the input values
-            Console.WriteLine($"Received: departureAirportId={departureAirportId}, arrivalAirportId={arrivalAirportId}, date={date}");
-
-            if (departureAirportId == 0 || arrivalAirportId == 0)
-            {
-                Console.WriteLine("Validation failed: Departure or arrival airport not selected.");
-                ModelState.AddModelError("", "Please select both departure and arrival airports.");
-                ViewBag.Airports = _context.Airports.ToList();
-                return View();
-            }
-
-            if (departureAirportId == arrivalAirportId)
-            {
-                Console.WriteLine("Validation failed: Departure and arrival airports are the same.");
-                ModelState.AddModelError("", "Departure and arrival airports cannot be the same.");
-                ViewBag.Airports = _context.Airports.ToList();
-                return View();
-            }
-
-            try
-            {
-                var query = $"api/flights/search?departureAirportId={departureAirportId}&arrivalAirportId={arrivalAirportId}";
-                if (date.HasValue)
-                {
-                    query += $"&date={date.Value:yyyy-MM-dd}";
-                }
-
-                Console.WriteLine($"Calling API: {query}");
-                var response = await _httpClient.GetAsync(query);
-                if (response.IsSuccessStatusCode)
-                {
-                    var flights = await response.Content.ReadFromJsonAsync<List<FlightDto>>();
-                    Console.WriteLine($"API returned {flights?.Count ?? 0} flights.");
-                    if (flights == null || !flights.Any())
-                    {
-                        TempData["Message"] = "No available flights found matching your criteria.";
-                    }
-
-                    ViewBag.Airports = _context.Airports.ToList();
-                    return View("SearchResults", flights);
-                }
-
-                Console.WriteLine($"API call failed: {response.StatusCode}");
-                ModelState.AddModelError("", "No flights found.");
-                ViewBag.Airports = _context.Airports.ToList();
-                return View();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception occurred: {ex.Message}");
-                ModelState.AddModelError("", "An error occurred while searching for flights. Please try again.");
-                ViewBag.Airports = _context.Airports.ToList();
-                return View();
-            }
-        }
-        // POST: /Flight/SelectFlight
+        // POST: /Booking/SelectFlight
         [HttpPost]
         public IActionResult SelectFlight(int flightId)
         {
-            // Validate the flight ID
             var flight = _context.Flights
                 .Include(f => f.Airline)
                 .Include(f => f.DepartureAirport)
@@ -104,34 +31,30 @@ namespace FlightReservationSystem.Controllers
             if (flight == null)
             {
                 TempData["Error"] = "Selected flight not found.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Search", "Search");
             }
 
-            // Check if the flight has available seats
             if (!flight.Seats.Any(s => !s.IsBooked))
             {
                 TempData["Error"] = "No available seats on this flight.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Search", "Search");
             }
 
-            // Store the selected flight ID in TempData
             TempData["SelectedFlightId"] = flightId;
-
-            // Redirect to the flight review page
             return RedirectToAction("ReviewFlight");
         }
-        // GET: /Flight/ReviewFlight
+
+        // GET: /Booking/ReviewFlight
         public IActionResult ReviewFlight()
         {
-            // Retrieve the selected flight ID from TempData
             if (!TempData.ContainsKey("SelectedFlightId"))
             {
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Search", "Search");
             }
 
             int flightId = (int)TempData["SelectedFlightId"];
-            TempData.Keep("SelectedFlightId"); // Keep the TempData for the next step
+            TempData.Keep("SelectedFlightId");
 
             var flight = _context.Flights
                 .Include(f => f.Airline)
@@ -143,38 +66,35 @@ namespace FlightReservationSystem.Controllers
             if (flight == null)
             {
                 TempData["Error"] = "Selected flight not found.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Search", "Search");
             }
 
             return View(flight);
         }
 
-        // GET: /Flight/AddPassengerDetails
+        // GET: /Booking/AddPassengerDetails
         public IActionResult AddPassengerDetails()
         {
-            // Ensure a flight is selected
             if (!TempData.ContainsKey("SelectedFlightId"))
             {
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Search", "Search");
             }
 
             TempData.Keep("SelectedFlightId");
             return View();
         }
 
-        // POST: /Flight/AddPassengerDetails
+        // POST: /Booking/AddPassengerDetails
         [HttpPost]
         public IActionResult AddPassengerDetails(List<PassengerDto> passengers)
         {
-            // Ensure a flight is selected
             if (!TempData.ContainsKey("SelectedFlightId"))
             {
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Search", "Search");
             }
 
-            // Validate passenger details
             if (passengers == null || !passengers.Any())
             {
                 ModelState.AddModelError("", "Please add at least one passenger.");
@@ -192,41 +112,33 @@ namespace FlightReservationSystem.Controllers
                 }
             }
 
-            // Store passenger details in TempData (serialize to JSON)
             TempData["PassengerDetails"] = System.Text.Json.JsonSerializer.Serialize(passengers);
             TempData.Keep("SelectedFlightId");
-
-            // Redirect to the booking confirmation step
             return RedirectToAction("ConfirmBooking");
         }
-        
 
-// GET: /Flight/ConfirmBooking
-[Authorize] // Requires the user to be logged in
-    public IActionResult ConfirmBooking()
-    {
-        // Ensure a flight is selected
-        if (!TempData.ContainsKey("SelectedFlightId"))
+        // GET: /Booking/ConfirmBooking
+        [Authorize]
+        public IActionResult ConfirmBooking()
         {
-            TempData["Error"] = "No flight selected. Please search and select a flight.";
-            return RedirectToAction("Search");
+            if (!TempData.ContainsKey("SelectedFlightId"))
+            {
+                TempData["Error"] = "No flight selected. Please search and select a flight.";
+                return RedirectToAction("Search", "Search");
+            }
+
+            if (!TempData.ContainsKey("PassengerDetails"))
+            {
+                TempData["Error"] = "Passenger details are missing. Please add passenger details.";
+                return RedirectToAction("AddPassengerDetails");
+            }
+
+            TempData.Keep("SelectedFlightId");
+            TempData.Keep("PassengerDetails");
+            return RedirectToAction("ProcessBooking");
         }
 
-        // Ensure passenger details are provided
-        if (!TempData.ContainsKey("PassengerDetails"))
-        {
-            TempData["Error"] = "Passenger details are missing. Please add passenger details.";
-            return RedirectToAction("AddPassengerDetails");
-        }
-
-        TempData.Keep("SelectedFlightId");
-        TempData.Keep("PassengerDetails");
-
-        // In a real application, this would render a payment page
-        // For now, we'll simulate the payment and proceed to booking
-        return RedirectToAction("ProcessBooking");
-    }
-        // GET: /Flight/ProcessBooking
+        // GET: /Booking/ProcessBooking
         [Authorize]
         public async Task<IActionResult> ProcessBooking()
         {
@@ -236,7 +148,7 @@ namespace FlightReservationSystem.Controllers
             {
                 Console.WriteLine("SelectedFlightId not found in TempData.");
                 TempData["Error"] = "No flight selected. Please search and select a flight.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Search", "Search");
             }
 
             if (!TempData.ContainsKey("PassengerDetails"))
@@ -261,7 +173,7 @@ namespace FlightReservationSystem.Controllers
 
             try
             {
-                Console.WriteLine("Fetching flight details with lock...");
+                Console.WriteLine("Fetching flight details...");
                 var flight = await _context.Flights
                     .Include(f => f.Seats)
                     .FirstOrDefaultAsync(f => f.FlightId == flightId);
@@ -270,7 +182,7 @@ namespace FlightReservationSystem.Controllers
                 {
                     Console.WriteLine("Flight not found in database.");
                     TempData["Error"] = "Selected flight not found.";
-                    return RedirectToAction("Search");
+                    return RedirectToAction("Search", "Search");
                 }
 
                 var availableSeats = flight.Seats.Where(s => !s.IsBooked).ToList();
@@ -280,7 +192,7 @@ namespace FlightReservationSystem.Controllers
                 {
                     Console.WriteLine("Not enough available seats.");
                     TempData["Error"] = "Not enough available seats for the number of passengers.";
-                    return RedirectToAction("Search");
+                    return RedirectToAction("Search", "Search");
                 }
 
                 Console.WriteLine("Simulating payment...");
@@ -302,7 +214,6 @@ namespace FlightReservationSystem.Controllers
                     return RedirectToAction("Login", "Account");
                 }
 
-                // Verify that the user exists in the database
                 var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
                 if (!userExists)
                 {
@@ -324,7 +235,6 @@ namespace FlightReservationSystem.Controllers
 
                 _context.Bookings.Add(booking);
 
-                // Mark seats as booked and assign them to passengers
                 var bookedSeats = new List<Seat>();
                 Console.WriteLine("Marking seats as booked...");
                 for (int i = 0; i < passengers.Count; i++)
@@ -345,7 +255,7 @@ namespace FlightReservationSystem.Controllers
                         Booking = booking,
                         FullName = passengerDto.FullName,
                         PassportNumber = passengerDto.PassportNumber,
-                        SeatNumber = seat.SeatNumber // Assign the SeatNumber from the booked seat
+                        SeatNumber = seat.SeatNumber
                     };
                     _context.Passengers.Add(passenger);
                 }
@@ -356,7 +266,7 @@ namespace FlightReservationSystem.Controllers
                 Console.WriteLine("Booking successful.");
                 TempData["BookingId"] = booking.BookingId;
                 TempData["ConfirmationMessage"] = $"Booking confirmed! Your booking ID is {booking.BookingId}.";
-                return RedirectToAction("BookingConfirmation");
+                return RedirectToAction("BookingConfirmation", "Confirmation");
             }
             catch (Exception ex)
             {
@@ -367,22 +277,32 @@ namespace FlightReservationSystem.Controllers
                     Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
                 }
                 TempData["Error"] = "An error occurred while processing your booking. Please try again.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Search", "Search");
             }
         }
 
-        // GET: /Flight/BookingConfirmation
-        public IActionResult BookingConfirmation()
+       
+        [Authorize]
+        public async Task<IActionResult> ManageBookings()
         {
-            if (!TempData.ContainsKey("ConfirmationMessage"))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
-                TempData["Error"] = "No booking confirmation available.";
-                return RedirectToAction("Search");
+                return RedirectToAction("Login", "Account");
             }
 
-            ViewBag.ConfirmationMessage = TempData["ConfirmationMessage"];
-            ViewBag.BookingId = TempData["BookingId"];
-            return View();
+            var bookings = await _context.Bookings
+                .Include(b => b.Flight)
+                    .ThenInclude(f => f.DepartureAirport)
+                .Include(b => b.Flight)
+                    .ThenInclude(f => f.ArrivalAirport)
+                .Include(b => b.Flight)
+                    .ThenInclude(f => f.Airline)
+                .Include(b => b.Passengers)
+                .Where(b => b.UserId == userId)
+                .ToListAsync();
+
+            return View(bookings);
         }
     }
 }

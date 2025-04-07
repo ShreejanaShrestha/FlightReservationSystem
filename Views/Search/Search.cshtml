@@ -10,7 +10,7 @@
     <div class="alert alert-danger">@TempData["Error"]</div>
 }
 
-<form asp-action="Search" method="post">
+<form asp-controller="Search" asp-action="Search" method="post">
     <div class="form-group mb-3">
         <label for="departureAirportId" class="form-label">Departure Airport</label>
         <select name="departureAirportId" id="departureAirportId" class="form-select" required>

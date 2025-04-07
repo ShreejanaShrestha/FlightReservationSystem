@@ -1,16 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿// FlightReservationSystem/Controllers/SeatsController.cs
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using FlightReservationSystem.Models;
 using FlightReservationSystem.Data;
 using FlightReservationSystem.DTO;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
-using FlightReservationSystem.DTO;
+using System.Linq;
 
 namespace FlightReservationSystem.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class SeatsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -22,49 +25,151 @@ namespace FlightReservationSystem.Controllers
             _logger = logger;
         }
 
-
-
-        // GET: api/seats/flight/{flightId}
-        [HttpGet("flight/{flightId}")]
-        public async Task<ActionResult<IEnumerable<SeatDto>>> GetSeatsForFlight(int flightId)
+        // GET: api/seats
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<SeatDto>>> GetSeats()
         {
             try
             {
-                var flight = await _context.Flights.FindAsync(flightId);
-                if (flight == null)
-                {
-                    return NotFound(new { message = $"Flight with ID {flightId} not found" });
-                }
-
                 var seats = await _context.Seats
-                    .Where(s => s.FlightId == flightId)
+                    .Include(s => s.Flight)
+                    .ThenInclude(f => f.Airline)
+                    .Include(s => s.Flight)
+                    .ThenInclude(f => f.DepartureAirport)
+                    .Include(s => s.Flight)
+                    .ThenInclude(f => f.ArrivalAirport)
                     .Select(s => new SeatDto
                     {
                         SeatId = s.SeatId,
                         FlightId = s.FlightId,
+                        Flight = new FlightDto
+                        {
+                            FlightId = s.Flight.FlightId,
+                            FlightNumber = s.Flight.FlightNumber,
+                            AirlineId = s.Flight.AirlineId,
+                            Airline = new AirlineDto
+                            {
+                                AirlineId = s.Flight.Airline.AirlineId,
+                                Name = s.Flight.Airline.Name,
+                                Code = s.Flight.Airline.Code,
+                                LogoUrl = s.Flight.Airline.LogoUrl
+                            },
+                            DepartureAirportId = s.Flight.DepartureAirportId,
+                            DepartureAirport = new AirportDto
+                            {
+                                AirportId = s.Flight.DepartureAirport.AirportId,
+                                Name = s.Flight.DepartureAirport.Name,
+                                Code = s.Flight.DepartureAirport.Code,
+                                City = s.Flight.DepartureAirport.City,
+                                Country = s.Flight.DepartureAirport.Country
+                            },
+                            ArrivalAirportId = s.Flight.ArrivalAirportId,
+                            ArrivalAirport = new AirportDto
+                            {
+                                AirportId = s.Flight.ArrivalAirport.AirportId,
+                                Name = s.Flight.ArrivalAirport.Name,
+                                Code = s.Flight.ArrivalAirport.Code,
+                                City = s.Flight.ArrivalAirport.City,
+                                Country = s.Flight.ArrivalAirport.Country
+                            },
+                            DepartureTime = s.Flight.DepartureTime,
+                            ArrivalTime = s.Flight.ArrivalTime,
+                            BasePrice = s.Flight.BasePrice
+                        },
                         SeatNumber = s.SeatNumber,
                         Class = s.Class,
-                        IsBooked = s.IsBooked
+                        IsBooked = s.IsBooked,
+                      
                     })
                     .ToListAsync();
 
                 if (!seats.Any())
                 {
-                    return NotFound(new { message = $"No seats found for Flight ID {flightId}" });
+                    return NotFound(new { message = "No seats found" });
                 }
-
                 return Ok(seats);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error retrieving seats for Flight ID {flightId}");
+                _logger.LogError(ex, "Error retrieving seats");
                 return StatusCode(500, new { error = "An error occurred while retrieving seats", details = ex.Message });
+            }
+        }
+
+        // GET: api/seats/{id}
+        [HttpGet("{id}")]
+        public async Task<ActionResult<SeatDto>> GetSeat(int id)
+        {
+            try
+            {
+                var seat = await _context.Seats
+                    .Include(s => s.Flight)
+                    .ThenInclude(f => f.Airline)
+                    .Include(s => s.Flight)
+                    .ThenInclude(f => f.DepartureAirport)
+                    .Include(s => s.Flight)
+                    .ThenInclude(f => f.ArrivalAirport)
+                    .Select(s => new SeatDto
+                    {
+                        SeatId = s.SeatId,
+                        FlightId = s.FlightId,
+                        Flight = new FlightDto
+                        {
+                            FlightId = s.Flight.FlightId,
+                            FlightNumber = s.Flight.FlightNumber,
+                            AirlineId = s.Flight.AirlineId,
+                            Airline = new AirlineDto
+                            {
+                                AirlineId = s.Flight.Airline.AirlineId,
+                                Name = s.Flight.Airline.Name,
+                                Code = s.Flight.Airline.Code,
+                                LogoUrl = s.Flight.Airline.LogoUrl
+                            },
+                            DepartureAirportId = s.Flight.DepartureAirportId,
+                            DepartureAirport = new AirportDto
+                            {
+                                AirportId = s.Flight.DepartureAirport.AirportId,
+                                Name = s.Flight.DepartureAirport.Name,
+                                Code = s.Flight.DepartureAirport.Code,
+                                City = s.Flight.DepartureAirport.City,
+                                Country = s.Flight.DepartureAirport.Country
+                            },
+                            ArrivalAirportId = s.Flight.ArrivalAirportId,
+                            ArrivalAirport = new AirportDto
+                            {
+                                AirportId = s.Flight.ArrivalAirport.AirportId,
+                                Name = s.Flight.ArrivalAirport.Name,
+                                Code = s.Flight.ArrivalAirport.Code,
+                                City = s.Flight.ArrivalAirport.City,
+                                Country = s.Flight.ArrivalAirport.Country
+                            },
+                            DepartureTime = s.Flight.DepartureTime,
+                            ArrivalTime = s.Flight.ArrivalTime,
+                            BasePrice = s.Flight.BasePrice
+                        },
+                        SeatNumber = s.SeatNumber,
+                        Class = s.Class,
+                        IsBooked = s.IsBooked,
+                       
+                    })
+                    .FirstOrDefaultAsync(s => s.SeatId == id);
+
+                if (seat == null)
+                {
+                    return NotFound(new { message = "Seat not found" });
+                }
+                return Ok(seat);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving seat");
+                return StatusCode(500, new { error = "An error occurred while retrieving the seat", details = ex.Message });
             }
         }
 
         // POST: api/seats
         [HttpPost]
-        public async Task<ActionResult<SeatDto>> AddSeat([FromBody] SeatDto seatDto)
+        public async Task<ActionResult<Seat>> AddSeat([FromBody] Seat seat)
         {
             try
             {
@@ -73,49 +178,75 @@ namespace FlightReservationSystem.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Validate that the Flight exists
-                var flight = await _context.Flights.FindAsync(seatDto.FlightId);
-                if (flight == null)
-                {
-                    return BadRequest(new { error = $"Flight with ID {seatDto.FlightId} not found" });
-                }
-
-                // Check if the seat number is already taken for this flight
-                var existingSeat = await _context.Seats
-                    .Where(s => s.FlightId == seatDto.FlightId && s.SeatNumber == seatDto.SeatNumber)
-                    .FirstOrDefaultAsync();
-                if (existingSeat != null)
-                {
-                    return BadRequest(new { error = $"Seat number {seatDto.SeatNumber} already exists for Flight ID {seatDto.FlightId}" });
-                }
-
-                var seat = new Seat
-                {
-                    FlightId = seatDto.FlightId,
-                    SeatNumber = seatDto.SeatNumber,
-                    Class = seatDto.Class,
-                    IsBooked = seatDto.IsBooked
-                };
-
                 _context.Seats.Add(seat);
                 await _context.SaveChangesAsync();
 
-                // Map to SeatDto for the response
-                var seatResponse = new SeatDto
-                {
-                    SeatId = seat.SeatId,
-                    FlightId = seat.FlightId,
-                    SeatNumber = seat.SeatNumber,
-                    Class = seat.Class,
-                    IsBooked = seat.IsBooked
-                };
-
-                return CreatedAtAction(nameof(AddSeat), new { id = seat.SeatId }, seatResponse);
+                return CreatedAtAction(nameof(GetSeat), new { id = seat.SeatId }, seat);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error adding seat");
                 return StatusCode(500, new { error = "An error occurred while adding the seat", details = ex.Message });
+            }
+        }
+
+        // PUT: api/seats/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateSeat(int id, [FromBody] Seat seat)
+        {
+            if (id != seat.SeatId)
+            {
+                return BadRequest(new { message = "Seat ID mismatch" });
+            }
+
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                _context.Entry(seat).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Seats.Any(s => s.SeatId == id))
+                {
+                    return NotFound(new { message = "Seat not found" });
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating seat");
+                return StatusCode(500, new { error = "An error occurred while updating the seat", details = ex.Message });
+            }
+        }
+
+        // DELETE: api/seats/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteSeat(int id)
+        {
+            try
+            {
+                var seat = await _context.Seats.FindAsync(id);
+                if (seat == null)
+                {
+                    return NotFound(new { message = "Seat not found" });
+                }
+
+                _context.Seats.Remove(seat);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting seat");
+                return StatusCode(500, new { error = "An error occurred while deleting the seat", details = ex.Message });
             }
         }
     }
