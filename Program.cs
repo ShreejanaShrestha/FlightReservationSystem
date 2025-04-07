@@ -185,7 +185,7 @@ using (var scope = app.Services.CreateScope())
     {
         new Airline { Name = "Delta Airlines", Code = "DL" },
         new Airline { Name = "British Airways", Code = "BA" },
-        new Airline { Name = "American Airlines", Code = "AA" }
+        new Airline { Name = "Air Airlines", Code = "AA" }
     };
     dbContext.Airlines.AddRange(airlines);
     await dbContext.SaveChangesAsync();
@@ -246,47 +246,43 @@ using (var scope = app.Services.CreateScope())
                 Seats = new List<Seat>()
             };
 
-            // Generate seats for different classes
-            // Economy class seats (60% of capacity)
-            for (char row = 'A'; row <= 'F'; row++)
+            // Generate seats - simplified to 5-6 seats total per flight
+            int totalSeats = random.Next(5, 7); // 5-6 seats per flight
+            int economyCount = (int)Math.Ceiling(totalSeats * 0.6); // ~60% economy
+            int businessCount = (int)Math.Ceiling((totalSeats - economyCount) * 0.7); // ~70% of remaining for business
+            int firstCount = totalSeats - economyCount - businessCount; // The rest for first class
+
+            // Economy seats
+            for (int j = 0; j < economyCount; j++)
             {
-                for (int seatNum = 1; seatNum <= 20; seatNum++)
+                flight.Seats.Add(new Seat
                 {
-                    flight.Seats.Add(new Seat
-                    {
-                        SeatNumber = $"{seatNum}{row}",
-                        Class = "Economy",
-                        IsBooked = random.Next(10) < 3 // 30% booked
-                    });
-                }
+                    SeatNumber = $"{j + 1}A", // Simple numbering scheme 1A, 2A, etc.
+                    Class = "Economy",
+                    IsBooked = random.Next(10) < 3 // 30% chance of being booked
+                });
             }
 
-            // Business class seats (20% of capacity)
-            for (char row = 'A'; row <= 'D'; row++)
+            // Business seats
+            for (int j = 0; j < businessCount; j++)
             {
-                for (int seatNum = 21; seatNum <= 25; seatNum++)
+                flight.Seats.Add(new Seat
                 {
-                    flight.Seats.Add(new Seat
-                    {
-                        SeatNumber = $"{seatNum}{row}",
-                        Class = "Business",
-                        IsBooked = random.Next(10) < 2 // 20% booked
-                    });
-                }
+                    SeatNumber = $"{j + 1}B", // 1B, 2B, etc.
+                    Class = "Business",
+                    IsBooked = random.Next(10) < 2 // 20% chance of being booked
+                });
             }
 
-            // First class seats (10% of capacity)
-            for (char row = 'A'; row <= 'C'; row++)
+            // First class seats
+            for (int j = 0; j < firstCount; j++)
             {
-                for (int seatNum = 26; seatNum <= 28; seatNum++)
+                flight.Seats.Add(new Seat
                 {
-                    flight.Seats.Add(new Seat
-                    {
-                        SeatNumber = $"{seatNum}{row}",
-                        Class = "First",
-                        IsBooked = random.Next(10) < 1 // 10% booked
-                    });
-                }
+                    SeatNumber = $"{j + 1}F", // 1F, 2F, etc.
+                    Class = "First",
+                    IsBooked = random.Next(10) < 1 // 10% chance of being booked
+                });
             }
 
             dbContext.Flights.Add(flight);

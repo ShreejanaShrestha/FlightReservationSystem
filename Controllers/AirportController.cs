@@ -1,13 +1,13 @@
-﻿// FlightReservationSystem/Controllers/AirportsController.cs
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FlightReservationSystem.Models;
 using FlightReservationSystem.Data;
 using FlightReservationSystem.DTO;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace FlightReservationSystem.Controllers
 {
@@ -134,7 +134,7 @@ namespace FlightReservationSystem.Controllers
         /// <param name="airport">The airport data to create</param>
         /// <returns>The newly created airport</returns>
         /// <response code="201">Returns the created airport</response>
-        /// <response code="400">If the airport data is invalid</response>
+        /// <response code="400">If the airport data is invalid or code is not unique</response>
         /// <response code="500">If there was a server error</response>
         [HttpPost]
         public async Task<ActionResult<Airport>> AddAirport([FromBody] Airport airport)
@@ -147,6 +147,13 @@ namespace FlightReservationSystem.Controllers
                 {
                     _logger.LogWarning("Invalid airport data received");
                     return BadRequest(ModelState);
+                }
+
+                // Validate that the airport code is unique
+                if (await _context.Airports.AnyAsync(a => a.Code == airport.Code))
+                {
+                    _logger.LogWarning($"Airport code {airport.Code} already exists.");
+                    return BadRequest(new { error = $"Airport code {airport.Code} already exists" });
                 }
 
                 _context.Airports.Add(airport);
@@ -195,7 +202,26 @@ namespace FlightReservationSystem.Controllers
                     return BadRequest(ModelState);
                 }
 
-                _context.Entry(airport).State = EntityState.Modified;
+                var existingAirport = await _context.Airports.FindAsync(id);
+                if (existingAirport == null)
+                {
+                    _logger.LogWarning($"Airport with ID {id} not found.");
+                    return NotFound(new { message = "Airport not found" });
+                }
+
+                // Validate that the new airport code is unique (if changed)
+                if (existingAirport.Code != airport.Code && await _context.Airports.AnyAsync(a => a.Code == airport.Code))
+                {
+                    _logger.LogWarning($"Airport code {airport.Code} already exists.");
+                    return BadRequest(new { error = $"Airport code {airport.Code} already exists" });
+                }
+
+                existingAirport.Name = airport.Name;
+                existingAirport.Code = airport.Code;
+                existingAirport.City = airport.City;
+                existingAirport.Country = airport.Country;
+
+                _context.Entry(existingAirport).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Successfully updated airport with ID: {AirportId}", id);
@@ -227,6 +253,7 @@ namespace FlightReservationSystem.Controllers
         /// <param name="id">The ID of the airport to delete</param>
         /// <returns>No content if successful</returns>
         /// <response code="204">If the deletion was successful</response>
+        /// <response code="400">If the airport has associated flights</response>
         /// <response code="404">If the airport is not found</response>
         /// <response code="500">If there was a server error</response>
         [HttpDelete("{id}")]
@@ -236,11 +263,21 @@ namespace FlightReservationSystem.Controllers
             {
                 _logger.LogInformation("Attempting to delete airport with ID: {AirportId}", id);
 
-                var airport = await _context.Airports.FindAsync(id);
+                var airport = await _context.Airports
+                    .Include(a => a.DepartureFlights)
+                    .Include(a => a.ArrivalFlights)
+                    .FirstOrDefaultAsync(a => a.AirportId == id);
+
                 if (airport == null)
                 {
                     _logger.LogWarning("Airport with ID {AirportId} not found for deletion", id);
                     return NotFound(new { message = "Airport not found" });
+                }
+
+                if (airport.DepartureFlights.Any() || airport.ArrivalFlights.Any())
+                {
+                    _logger.LogWarning($"Cannot delete airport {airport.Name} because it is associated with flights.");
+                    return BadRequest(new { error = "Cannot delete airport because it is associated with flights" });
                 }
 
                 _context.Airports.Remove(airport);

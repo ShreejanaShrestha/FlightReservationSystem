@@ -583,5 +583,78 @@ namespace FlightReservationSystem.Controllers
 
             return View(bookings);
         }
+
+        // GET: api/bookings
+        [HttpGet]
+        public async Task<ActionResult<object>> GetBookings()
+        {
+            _logger.LogInformation("GetBookings API called.");
+
+            var bookings = await _context.Bookings
+                .Include(b => b.Flight)
+                .Include(b => b.Passengers)
+                .ToListAsync();
+
+            return bookings;
+        }
+        // GET: api/bookings/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<object>> GetBookingById(int id)
+        {
+            _logger.LogInformation($"GetBooking API called for BookingId: {id}");
+
+            var booking = await _context.Bookings
+                .Include(b => b.Flight)
+                .Include(b => b.Passengers)
+                .FirstOrDefaultAsync(b => b.BookingId == id);
+
+            if (booking == null)
+            {
+                _logger.LogWarning($"Booking with ID {id} not found.");
+                return NotFound();
+            }
+
+            return booking;
+        }
+
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            _logger.LogInformation($"CancelBooking API called for BookingId: {id}");
+
+            var booking = await _context.Bookings
+                .Include(b => b.Passengers)
+                .FirstOrDefaultAsync(b => b.BookingId == id);
+
+            if (booking == null)
+            {
+                _logger.LogWarning($"Booking with ID {id} not found.");
+                return NotFound(new { message = "Booking not found" });
+            }
+
+            if (booking.Status == "Cancelled")
+            {
+                _logger.LogWarning($"Booking {id} is already cancelled.");
+                return BadRequest(new { error = "Booking is already cancelled." });
+            }
+
+            booking.Status = "Cancelled";
+
+            // Mark seats as unbooked
+            var seatNumbers = booking.Passengers.Select(p => p.SeatNumber).ToList();
+            var seats = await _context.Seats
+                .Where(s => s.FlightId == booking.FlightId && seatNumbers.Contains(s.SeatNumber))
+                .ToListAsync();
+
+            foreach (var seat in seats)
+            {
+                seat.IsBooked = false;
+            }
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation($"Booking {id} cancelled successfully.");
+            return NoContent();
+        }
+
     }
 }
