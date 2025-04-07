@@ -2,45 +2,213 @@
 @{
     ViewData["Title"] = "Search Flights";
 }
-
-<h2>Search Flights</h2>
-
 @if (TempData["Error"] != null)
 {
     <div class="alert alert-danger">@TempData["Error"]</div>
 }
 
-<form asp-controller="Search" asp-action="Search" method="post">
-    <div class="form-group mb-3">
-        <label for="departureAirportId" class="form-label">Departure Airport</label>
-        <select name="departureAirportId" id="departureAirportId" class="form-select" required>
-            <option value="">Select Departure Airport</option>
-            @foreach (var airport in ViewBag.Airports)
-            {
-                <option value="@airport.AirportId">@airport.Name (@airport.Code)</option>
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Search Header -->
+        <div class="search-header">
+            <h1>Book Your Flight</h1>
+            <p>Experience world-class service and comfort</p>
+        </div>
+
+        <!-- Search Container -->
+        <div class="search-container">
+            <div class="search-bg"></div>
+            <div class="search-nav-tabs">
+                <a href="#" class="search-nav-item active" data-tab="book-flight">
+                    <i class="fas fa-plane"></i> Book a Flight
+                </a>
+                <a href="#" class="search-nav-item" data-tab="check-in">
+                    <i class="far fa-calendar-alt"></i> Check In
+                </a>
+                <a href="#" class="search-nav-item" data-tab="manage-bookings">
+                    <i class="fas fa-map-marker-alt"></i> Manage Bookings
+                </a>
+                <a href="#" class="search-nav-item" data-tab="flight-status">
+                    <i class="fas fa-info-circle"></i> Flight Status
+                </a>
+            </div>
+
+            <div class="search-content">
+                <!-- Book a Flight Form -->
+                <div class="search-card tab-content active" id="book-flight">
+                    <form asp-action="Search" method="post">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">From</label>
+                                <select name="departureAirportId" id="departureAirportId" class="form-select" required>
+                                    <option value="">Select Departure Airport</option>
+                                    @foreach (var airport in ViewBag.Airports)
+                                    {
+                                        <option value="@airport.AirportId">@airport.Name (@airport.Code)</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center justify-content-center">
+                                <button type="button" class="swap-btn btn btn-outline-secondary" aria-label="Swap departure and destination" title="Swap departure and destination">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">To</label>
+                                <select name="arrivalAirportId" id="arrivalAirportId" class="form-select" required>
+                                    <option value="">Select Arrival Airport</option>
+                                    @foreach (var airport in ViewBag.Airports)
+                                    {
+                                        <option value="@airport.AirportId">@airport.Name (@airport.Code)</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Departure</label>
+                                <input type="date" name="date" id="date" class="form-control" placeholder="Departure date" />
+                                <i class="far fa-calendar-alt input-icon"></i>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Return</label>
+                                <input type="date" name="returnDate" id="returnDate" class="form-control" placeholder="Return date" />
+                                <i class="far fa-calendar-alt input-icon"></i>
+                            </div>
+
+                            <div class="col-auto">
+                                <button type="submit" class="search-btn">
+                                    <i class="fas fa-search me-2"></i> Find Flights
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Check In Form (Placeholder) -->
+                <div class="search-card tab-content" id="check-in">
+                    <form id="checkInForm" method="post" novalidate>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bookingReference" class="form-label">Booking Reference</label>
+                                <input type="text" class="form-control" id="bookingReference" name="bookingReference" placeholder="Enter your booking reference" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Enter your last name" required>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="search-btn">
+                                    <i class="fas fa-check me-2"></i> Check In
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Flight Status Form (Placeholder) -->
+                <div class="search-card tab-content" id="flight-status">
+                    <form id="flightStatusForm" method="get" novalidate>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="flightNumber" class="form-label">Flight Number</label>
+                                <input type="text" class="form-control" id="flightNumber" name="flightNumber" placeholder="e.g., AA123" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="flightDate" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="flightDate" name="flightDate" required>
+                                <i class="far fa-calendar-alt input-icon"></i>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="search-btn">
+                                    <i class="fas fa-info-circle me-2"></i> Check Status
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JS Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tab switching
+            const tabs = document.querySelectorAll('.search-nav-item');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetTab = this.getAttribute('data-tab');
+
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
+
+            // Swap button functionality
+            const swapBtn = document.querySelector('.swap-btn');
+            if (swapBtn) {
+                swapBtn.addEventListener('click', function () {
+                    const departureSelect = document.getElementById('departureAirportId');
+                    const arrivalSelect = document.getElementById('arrivalAirportId');
+                    const tempValue = departureSelect.value;
+                    const tempText = departureSelect.options[departureSelect.selectedIndex].text;
+                    
+                    departureSelect.value = arrivalSelect.value;
+                    arrivalSelect.value = tempValue;
+                    
+                    // Update the displayed text
+                    if (departureSelect.options[departureSelect.selectedIndex]) {
+                        departureSelect.options[departureSelect.selectedIndex].selected = true;
+                    }
+                    if (arrivalSelect.options[arrivalSelect.selectedIndex]) {
+                        arrivalSelect.options[arrivalSelect.selectedIndex].selected = true;
+                    }
+                });
             }
-        </select>
-    </div>
 
-    <div class="form-group mb-3">
-        <label for="arrivalAirportId" class="form-label">Arrival Airport</label>
-        <select name="arrivalAirportId" id="arrivalAirportId" class="form-select" required>
-            <option value="">Select Arrival Airport</option>
-            @foreach (var airport in ViewBag.Airports)
-            {
-                <option value="@airport.AirportId">@airport.Name (@airport.Code)</option>
+            // Initialize Flatpickr for date pickers
+            flatpickr("#date", {
+                dateFormat: "Y-m-d",
+                minDate: "today"
+            });
+
+            flatpickr("#returnDate", {
+                dateFormat: "Y-m-d",
+                minDate: "today"
+            });
+
+            flatpickr("#flightDate", {
+                dateFormat: "Y-m-d",
+                minDate: "today"
+            });
+
+            // Update ReturnDate's minDate when DepartureDate changes
+            const departureDateInput = document.getElementById("date");
+            const returnDateInput = document.getElementById("returnDate");
+
+            if (departureDateInput && returnDateInput) {
+                departureDateInput.addEventListener('change', function() {
+                    if (this.value) {
+                        returnDateInput._flatpickr.set('minDate', this.value);
+                    }
+                });
             }
-        </select>
-    </div>
-
-    <div class="form-group mb-3">
-        <label for="date" class="form-label">Departure Date (Optional)</label>
-        <input type="date" name="date" id="date" class="form-control" />
-    </div>
-
-    <button type="submit" class="btn btn-primary">Search Flights</button>
-</form>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+        });
+    </script>

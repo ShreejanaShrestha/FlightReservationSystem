@@ -3,42 +3,20 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Book your flight with our easy-to-use flight reservation system">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="Flight Reservation">
     <title>@ViewData["Title"] - Flight Reservation System</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <style>
-       
-
-      
-
-        .navbar {
-            background-color: var(--primary-color);
-        }
-
-        .navbar-brand, .nav-link {
-            color: var(--accent-color) !important;
-        }
-
-            
-
-       
-
-          
-
-        .footer {
-            background-color: var(--primary-color);
-            color: var(--accent-color);
-            padding: 1rem 0;
-        }
-
-            .footer a {
-                color: var(--accent-color);
-                margin: 0 0.5rem;
-            }
-    </style>
+    <link rel="stylesheet" href="~/FlightReservationSystem.styles.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 <body>
-    <header>
+    <header class="bg-white">
         <nav class="navbar navbar-expand-lg">
             <div class="container">
                 <a class="navbar-brand" asp-controller="Search" asp-action="Search">Flight Reservation System</a>
@@ -68,15 +46,17 @@
         </main>
     </div>
 
-    <footer class="footer text-center mt-4">
-        <div class="container">
+    <footer class="border-top footer text-light bg-dark mt-4">
+        <div class="container d-flex justify-content-between">
+            <div>
             &copy; 2025 - Flight Reservation System |
             <a asp-controller="Home" asp-action="Privacy">Privacy Policy</a> |
             <a asp-controller="Home" asp-action="Terms">Terms of Service</a>
-            <div class="mt-2">
-                <a href="your-facebook-link" target="_blank"><i class="fab fa-facebook-f"></i></a>
-                <a href="your-twitter-link" target="_blank"><i class="fab fa-twitter"></i></a>
-                <a href="your-instagram-link" target="_blank"><i class="fab fa-instagram"></i></a>
+            </div>
+            <div class="">
+                <a href="#" target="_blank"><i class="fab fa-facebook-f text-light"></i></a>
+                <a href="#" target="_blank"><i class="fab fa-twitter text-light"></i></a>
+                <a href="#" target="_blank"><i class="fab fa-instagram text-light"></i></a>
             </div>
         </div>
     </footer>

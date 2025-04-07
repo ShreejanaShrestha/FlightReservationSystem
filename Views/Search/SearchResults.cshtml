@@ -1,65 +1,329 @@
-﻿@model List<FlightReservationSystem.DTO.FlightDto>
+﻿ @model List<FlightReservationSystem.DTO.FlightDto>
 
 @{
     ViewData["Title"] = "Flight Search Results";
 }
 
-<h2>Flight Search Results</h2>
+<style>
+    .search-summary {
+        font-size: 1.1rem;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .search-summary-item {
+        display: flex;
+        align-items: center;
+    }
+    
+    .search-summary-item:not(:last-child)::after {
+        content: "|";
+        margin-left: 10px;
+        color: #999;
+    }
+    
+    .flight-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: white;
+    }
+    
+    .flight-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .airline-info {
+        display: flex;
+        align-items: center;
+    }
+    
+    .airline-logo {
+        width: 40px;
+        height: 40px;
+        margin-right: 15px;
+        background-color: #f0f0f0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .flight-number {
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .flight-details {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+    
+    .time-info {
+        flex: 1;
+    }
+    
+    .time {
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .airport {
+        font-size: 0.9rem;
+        color: #555;
+    }
+    
+    .duration-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .duration {
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    
+    .price-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-direction: column;
+        
+        
+    }
+    
+    .price {
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: #2a6496;
+    }
+    
+    .price-label {
+        font-size: 0.9rem;
+        color: #555;
+    }
+    
+    .btn-book {
+        background-color: #ff6d00;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-book:hover {
+        background-color: #e65c00;
+    }
+    
+    .btn-details {
+        background: none;
+        border: none;
+        color: #2a6496;
+        cursor: pointer;
+        /* display: flex;
+        align-items: center; */
+        margin-top: 15px;
+        font-weight: 500;
+    }
+    
+    .btn-details i {
+        margin-left: 5px;
+        transition: transform 0.2s;
+    }
+    
+    .flight-expanded-details {
+        display: none;
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-radius: 5px;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .flight-expanded-details.show {
+        display: block;
+    }
+    
+    .details-row {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    
+    .details-label {
+        font-weight: bold;
+        width: 150px;
+        color: #555;
+    }
+    
+    .details-value {
+        flex: 1;
+    }
 
-@if (TempData["Message"] != null)
-{
-    <div class="alert alert-info">@TempData["Message"]</div>
-}
+    .card-content {
+        display: flex;
+        justify-content: space-between;
+    }
 
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">@TempData["Error"]</div>
-}
+    .flight-dict {
+        list-style: none;
+    }
 
-@if (Model == null || !Model.Any())
-{
-    <p>No flights found.</p>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Flight Number</th>
-                <th>Airline</th>
-                <th>Departure</th>
-                <th>Arrival</th>
-                <th>Departure Time</th>
-                <th>Arrival Time</th>
-                <th>Price</th>
-                <th>Available Seats</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var flight in Model)
-            {
-                <tr>
-                    <td>@flight.FlightNumber</td>
-                    <td>@flight.AirlineName</td>
-                    <td>@flight.DepartureAirportName</td>
-                    <td>@flight.ArrivalAirportName</td>
-                    <td>@flight.DepartureTime</td>
-                    <td>@flight.ArrivalTime</td>
-                    <td>$@flight.BasePrice</td>
-                    <td>@flight.Seats.Count(s => !s.IsBooked)</td>
-                    <td>
+    .flight-dict li {
+        display: inline-block;
+        color: #a0a0a0;
+    }
+</style>
+
+<div class="flight-results-container">
+    <div class="search-summary">
+        @{
+            var departure = Model.FirstOrDefault()?.DepartureAirportName ?? "Unknown";
+            var arrival = Model.FirstOrDefault()?.ArrivalAirportName ?? "Unknown";
+            var date = Model.FirstOrDefault()?.DepartureTime.ToString("d MMM yyyy") ?? DateTime.Now.ToString("d MMM yyyy");
+        }
+        <span class="search-summary-item">@Model.Count flights</span>
+        <span class="search-summary-item">@date</span>
+        <span class="search-summary-item">One-way</span>
+        <span class="search-summary-item">1 Traveller</span>
+    </div>
+
+    <h2>Flights from @departure to @arrival</h2>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-info">@TempData["Message"]</div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-warning">No flights found matching your criteria.</div>
+    }
+    else
+    {
+        foreach (var flight in Model)
+        {
+            <div class="flight-card">
+
+                <div class="card-content">
+                    <div class="flight-header">
+                        <div class="airline-info">
+                            <img src="https://via.placeholder.com/40" alt="@flight.AirlineName" class="airline-logo">
+                            <div>
+                                <div class="flight-number">@flight.AirlineName @flight.FlightNumber</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flight-details">
+                        <div class="time-info">
+                            <div class="time">@flight.DepartureTime.ToString("h:mm tt")</div>
+                            <div class="airport">@flight.DepartureAirportName</div>
+                        </div>
+
+                        <div class="duration-info">
+                            <div class="duration">@FormatDuration(flight.DepartureTime, flight.ArrivalTime)</div>
+
+                        </div>
+
+                        <div class="time-info">
+                            <div class="time">@flight.ArrivalTime.ToString("h:mm tt")</div>
+                            <div class="airport">@flight.ArrivalAirportName</div>
+                        </div>
+                    </div>
+
+                    <div class="price-section">
+                        <div class="text-center">
+                            <div class="price">$ @((flight.BasePrice * 100).ToString("N0"))</div>
+                            <div class="price-label"><p class="m-0">price per person</p><p class="m-0">(incl. taxes)</p></div>
+                        </div>
+
                         <form asp-controller="Booking" asp-action="SelectFlight" method="post">
                             <input type="hidden" name="flightId" value="@flight.FlightId" />
-                            <button type="submit" class="btn btn-primary">Select</button>
+                            <button type="submit" class="btn-book">Book Now</button>
                         </form>
-                    </td>
-                </tr>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button class="btn-details" onclick="toggleFlightDetails('details-@flight.FlightId')">
+                        View Flight Details <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+
+                <div id="details-@flight.FlightId" class="flight-expanded-details">
+                    <div class="details-row">
+                        <div class="details-label">Flight Number:</div>
+                        <div class="details-value">@flight.FlightNumber</div>
+                    </div>
+                    <div class="details-row">
+                        <div class="details-label">Aircraft:</div>
+                        <div class="details-value">Boeing 737</div>
+                    </div>
+                    
+                    <div class="details-row">
+                        <div class="details-label">Available Seats:</div>
+                        <div class="details-value">@flight.Seats.Count(s => !s.IsBooked)</div>
+                    </div>
+                    <div class="details-row">
+                        <div class="details-label">Baggage Allowance:</div>
+                        <div class="details-value">1 x 23kg checked + 1 x 7kg cabin</div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <div style="margin-top: 30px;padding-bottom:30px">
+        <a asp-action="Search" class="btn btn-secondary">Search Again</a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleFlightDetails(id) {
+            const details = document.getElementById(id);
+            const button = details.previousElementSibling;
+            const icon = button.querySelector('i');
+            
+            details.classList.toggle('show');
+            
+            if (details.classList.contains('show')) {
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                icon.style.transform = 'rotate(0deg)';
             }
-        </tbody>
-    </table>
+        }
+    </script>
 }
 
-<div>
-    <a asp-controller="Search" asp-action="Search" class="btn btn-secondary">Search Again</a>
-</div>
+@functions {
+    string FormatDuration(DateTime departure, DateTime arrival)
+    {
+        var duration = arrival - departure;
+        if (duration.TotalHours >= 1)
+        {
+            return $"{(int)duration.TotalHours}h {duration.Minutes}m";
+        }
+        return $"{duration.Minutes}m";
+    }
+}

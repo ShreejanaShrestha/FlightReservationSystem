@@ -77,7 +77,7 @@ namespace FlightReservationSystem.Controllers
             HttpContext.Session.SetInt32("SelectedFlightId", flightId);
             _logger.LogInformation($"Stored SelectedFlightId {flightId} in session.");
 
-            return RedirectToAction("ReviewFlight");
+            return RedirectToAction("AddPassengerDetails");
         }
 
         /// <summary>
@@ -128,7 +128,6 @@ namespace FlightReservationSystem.Controllers
         public IActionResult AddPassengerDetails()
         {
             _logger.LogInformation("AddPassengerDetails GET action called.");
-
             // Verify flight selection
             var flightId = HttpContext.Session.GetInt32("SelectedFlightId");
             if (!flightId.HasValue)
