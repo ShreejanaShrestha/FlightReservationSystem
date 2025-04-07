@@ -5,6 +5,7 @@ using FlightReservationSystem.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using FlightReservationSystem.Enums;
+using Microsoft.AspNetCore.Authorization;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -322,6 +323,282 @@ public class FlightsController : ControllerBase
         {
             _logger.LogError(ex, "Error adding flight");
             return StatusCode(500, new { error = "An error occurred while adding the flight" });
+        }
+
+
+    }
+    /// <summary>
+    /// Retrieves a specific flight by ID
+    /// </summary>
+    /// <param name="id">The ID of the flight to retrieve</param>
+    /// <returns>The requested flight</returns>
+    /// <response code="200">Returns the requested flight</response>
+    /// <response code="404">If the flight is not found</response>
+    /// <response code="500">If there was a server error</response>
+    [HttpGet("{id}")]
+    public async Task<ActionResult<FlightDto>> GetFlight(int id)
+    {
+        try
+        {
+            _logger.LogInformation($"Retrieving flight with ID: {id}");
+
+            var flight = await _context.Flights
+                .Include(f => f.Airline)
+                .Include(f => f.DepartureAirport)
+                .Include(f => f.ArrivalAirport)
+                .Include(f => f.Seats)
+                .Select(f => new FlightDto
+                {
+                    FlightId = f.FlightId,
+                    FlightNumber = f.FlightNumber,
+                    AirlineId = f.AirlineId,
+                    AirlineName = f.Airline.Name,
+                    DepartureAirportId = f.DepartureAirportId,
+                    DepartureAirportName = f.DepartureAirport.Name,
+                    ArrivalAirportId = f.ArrivalAirportId,
+                    ArrivalAirportName = f.ArrivalAirport.Name,
+                    DepartureTime = f.DepartureTime,
+                    ArrivalTime = f.ArrivalTime,
+                    BasePrice = f.BasePrice,
+                    Seats = f.Seats.Select(s => new SeatDto
+                    {
+                        SeatId = s.SeatId,
+                        FlightId = s.FlightId,
+                        SeatNumber = s.SeatNumber,
+                        Class = s.Class,
+                        IsBooked = s.IsBooked
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync(f => f.FlightId == id);
+
+            if (flight == null)
+            {
+                _logger.LogWarning($"Flight with ID {id} not found.");
+                return NotFound(new { message = "Flight not found" });
+            }
+
+            _logger.LogInformation($"Successfully retrieved flight with ID: {id}");
+            return Ok(flight);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving flight with ID: {id}");
+            return StatusCode(500, new { error = "An error occurred while retrieving the flight", details = ex.Message });
+        }
+    }
+    /// <summary>
+    /// Retrieves bookings and passengers for a specific flight
+    /// </summary>
+    /// <param name="id">The ID of the flight</param>
+    /// <returns>Details of the flight, its bookings, and passengers</returns>
+    /// <response code="200">Returns the flight details with bookings and passengers</response>
+    /// <response code="404">If the flight is not found</response>
+    /// <response code="500">If there was a server error</response>
+    [HttpGet("{id}/bookings")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<object>> GetFlightBookings(int id)
+    {
+        try
+        {
+            _logger.LogInformation($"Retrieving bookings for flight with ID: {id}");
+
+            var flight = await _context.Flights
+                .Include(f => f.Airline)
+                .Include(f => f.DepartureAirport)
+                .Include(f => f.ArrivalAirport)
+                .FirstOrDefaultAsync(f => f.FlightId == id);
+
+            if (flight == null)
+            {
+                _logger.LogWarning($"Flight with ID {id} not found.");
+                return NotFound(new { message = "Flight not found" });
+            }
+
+            var bookings = await _context.Bookings
+                .Include(b => b.Passengers)
+                .Where(b => b.FlightId == id)
+                .ToListAsync();
+
+            var passengers = bookings.SelectMany(b => b.Passengers).ToList();
+
+            var flightDto = new FlightDto
+            {
+                FlightId = flight.FlightId,
+                FlightNumber = flight.FlightNumber,
+                AirlineId = flight.AirlineId,
+                AirlineName = flight.Airline.Name,
+                DepartureAirportId = flight.DepartureAirportId,
+                DepartureAirportName = flight.DepartureAirport.Name,
+                ArrivalAirportId = flight.ArrivalAirportId,
+                ArrivalAirportName = flight.ArrivalAirport.Name,
+                DepartureTime = flight.DepartureTime,
+                ArrivalTime = flight.ArrivalTime,
+                BasePrice = flight.BasePrice
+            };
+
+            return Ok(new
+            {
+                flight = flightDto,
+                bookings,
+                passengers
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error retrieving bookings for flight with ID: {id}");
+            return StatusCode(500, new { error = "An error occurred while retrieving flight bookings", details = ex.Message });
+        }
+    }
+    /// <summary>
+    /// Updates an existing flight
+    /// </summary>
+    /// <param name="id">The ID of the flight to update</param>
+    /// <param name="flightDto">The updated flight data</param>
+    /// <returns>No content if successful</returns>
+    /// <response code="204">If the update was successful</response>
+    /// <response code="400">If the ID doesn't match or data is invalid</response>
+    /// <response code="404">If the flight is not found</response>
+    /// <response code="500">If there was a server error</response>
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateFlight(int id, [FromBody] AddFlightDto flightDto)
+    {
+        try
+        {
+            _logger.LogInformation($"Updating flight with ID: {id}");
+
+            var existingFlight = await _context.Flights.FindAsync(id);
+            if (existingFlight == null)
+            {
+                _logger.LogWarning($"Flight with ID {id} not found.");
+                return NotFound(new { message = "Flight not found" });
+            }
+
+            // Validate model state
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state for UpdateFlight");
+                return BadRequest(ModelState);
+            }
+
+            // Business rule validation
+            if (flightDto.DepartureTime >= flightDto.ArrivalTime)
+            {
+                _logger.LogWarning("Invalid flight times - departure not before arrival");
+                return BadRequest(new { error = "Departure time must be before arrival time" });
+            }
+
+            if (flightDto.DepartureAirportId == flightDto.ArrivalAirportId)
+            {
+                _logger.LogWarning("Departure and Arrival airports cannot be the same");
+                return BadRequest(new { error = "Departure and Arrival airports cannot be the same" });
+            }
+
+            // Check for duplicate flight number (excluding the current flight)
+            if (await _context.Flights.AnyAsync(f => f.FlightNumber == flightDto.FlightNumber && f.FlightId != id))
+            {
+                _logger.LogWarning("Duplicate flight number: {FlightNumber}", flightDto.FlightNumber);
+                return BadRequest(new { error = $"Flight number {flightDto.FlightNumber} already exists" });
+            }
+
+            // Validate referenced entities exist
+            var airline = await _context.Airlines.FindAsync(flightDto.AirlineId);
+            if (airline == null)
+            {
+                _logger.LogWarning("Airline not found: {AirlineId}", flightDto.AirlineId);
+                return BadRequest(new { error = $"Airline with ID {flightDto.AirlineId} not found" });
+            }
+
+            var departureAirport = await _context.Airports.FindAsync(flightDto.DepartureAirportId);
+            if (departureAirport == null)
+            {
+                _logger.LogWarning("Departure airport not found: {AirportId}", flightDto.DepartureAirportId);
+                return BadRequest(new { error = $"Departure Airport with ID {flightDto.DepartureAirportId} not found" });
+            }
+
+            var arrivalAirport = await _context.Airports.FindAsync(flightDto.ArrivalAirportId);
+            if (arrivalAirport == null)
+            {
+                _logger.LogWarning("Arrival airport not found: {AirportId}", flightDto.ArrivalAirportId);
+                return BadRequest(new { error = $"Arrival Airport with ID {flightDto.ArrivalAirportId} not found" });
+            }
+
+            // Update flight properties
+            existingFlight.FlightNumber = flightDto.FlightNumber;
+            existingFlight.AirlineId = flightDto.AirlineId;
+            existingFlight.DepartureAirportId = flightDto.DepartureAirportId;
+            existingFlight.ArrivalAirportId = flightDto.ArrivalAirportId;
+            existingFlight.DepartureTime = flightDto.DepartureTime;
+            existingFlight.ArrivalTime = flightDto.ArrivalTime;
+            existingFlight.BasePrice = flightDto.BasePrice;
+
+            _context.Entry(existingFlight).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            // Invalidate cache
+            _cache.Remove("AllFlights");
+            var searchCacheKey = $"{FlightSearchCacheKey}{flightDto.DepartureAirportId}_{flightDto.ArrivalAirportId}_*";
+            _logger.LogInformation("Invalidated cache for AllFlights and search results");
+
+            _logger.LogInformation($"Successfully updated flight with ID: {id}");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating flight with ID: {id}");
+            return StatusCode(500, new { error = "An error occurred while updating the flight", details = ex.Message });
+        }
+    }
+    /// <summary>
+    /// Deletes a flight
+    /// </summary>
+    /// <param name="id">The ID of the flight to delete</param>
+    /// <returns>No content if successful</returns>
+    /// <response code="204">If the deletion was successful</response>
+    /// <response code="400">If the flight has associated bookings</response>
+    /// <response code="404">If the flight is not found</response>
+    /// <response code="500">If there was a server error</response>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteFlight(int id)
+    {
+        try
+        {
+            _logger.LogInformation($"Deleting flight with ID: {id}");
+
+            var flight = await _context.Flights
+                .Include(f => f.Seats)
+                .Include(f => f.Bookings)
+                .FirstOrDefaultAsync(f => f.FlightId == id);
+
+            if (flight == null)
+            {
+                _logger.LogWarning($"Flight with ID {id} not found.");
+                return NotFound(new { message = "Flight not found" });
+            }
+
+            if (flight.Bookings.Any())
+            {
+                _logger.LogWarning($"Cannot delete flight {flight.FlightNumber} because it has associated bookings.");
+                return BadRequest(new { error = "Cannot delete flight because it has associated bookings" });
+            }
+
+            _context.Seats.RemoveRange(flight.Seats);
+            _context.Flights.Remove(flight);
+            await _context.SaveChangesAsync();
+
+            // Invalidate cache
+            _cache.Remove("AllFlights");
+            var searchCacheKey = $"{FlightSearchCacheKey}{flight.DepartureAirportId}_{flight.ArrivalAirportId}_*";
+            _logger.LogInformation("Invalidated cache for AllFlights and search results");
+
+            _logger.LogInformation($"Successfully deleted flight with ID: {id}");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting flight with ID: {id}");
+            return StatusCode(500, new { error = "An error occurred while deleting the flight", details = ex.Message });
         }
     }
 }
