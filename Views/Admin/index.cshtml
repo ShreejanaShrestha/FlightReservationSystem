@@ -68,7 +68,7 @@
                         <td>
                             <a href="#" onclick="showEditFlightForm(@flight.FlightId)" class="btn btn-sm btn-warning">Edit</a>
                             <a href="#" onclick="deleteFlight(@flight.FlightId)" class="btn btn-sm btn-danger">Delete</a>
-                            <a href="#" onclick="viewFlightBookings(@flight.FlightId)" class="btn btn-sm btn-info">View Bookings</a>
+                           
                         </td>
                     </tr>
                 }
@@ -150,7 +150,7 @@
                 <tr>
                     <th>Booking ID</th>
                     <th>Flight Number</th>
-                    <th>User ID</th>
+                    <th>User Name</th>
                     <th>Booking Date</th>
                     <th>Status</th>
                     <th>Passengers</th>
@@ -274,7 +274,7 @@
                                             <td>
                                                 <a href="#" onclick="showEditFlightForm(${flight.flightId})" class="btn btn-sm btn-warning">Edit</a>
                                                 <a href="#" onclick="deleteFlight(${flight.flightId})" class="btn btn-sm btn-danger">Delete</a>
-                                                <a href="#" onclick="viewFlightBookings(${flight.flightId})" class="btn btn-sm btn-info">View Bookings</a>
+                                               
                                             </td>
                                         </tr>
                                     `);
@@ -372,7 +372,7 @@
                                         <tr>
                                             <td>${booking.bookingId}</td>
                                             <td>${flight.flightNumber || 'N/A'}</td>
-                                            <td>${booking.userId}</td>
+                                            <td>${booking.userName}</td>
                                             <td>${new Date(booking.bookingDate).toLocaleString()}</td>
                                             <td>${booking.status}</td>
                                             <td>${booking.passengers.length}</td>
@@ -389,7 +389,7 @@
                                         <tr>
                                             <td>${booking.bookingId}</td>
                                             <td>N/A (Flight not found)</td>
-                                            <td>${booking.userId}</td>
+                                            <td>${booking.userName}</td>
                                             <td>${new Date(booking.bookingDate).toLocaleString()}</td>
                                             <td>${booking.status}</td>
                                             <td>${booking.passengers.length}</td>
@@ -1077,7 +1077,7 @@
                             <dt class="col-sm-3">Booking ID</dt>
                             <dd class="col-sm-9">${data.bookingId}</dd>
                             <dt class="col-sm-3">User ID</dt>
-                            <dd class="col-sm-9">${data.userId}</dd>
+                            <dd class="col-sm-9">${data.userName}</dd>
                             <dt class="col-sm-3">Flight Number</dt>
                             <dd class="col-sm-9">${data.flight.flightNumber}</dd>
                             <dt class="col-sm-3">Booking Date</dt>

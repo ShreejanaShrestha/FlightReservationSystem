@@ -1,5 +1,4 @@
-﻿// FlightReservationSystem/DTO/BookingDto.cs
-namespace FlightReservationSystem.DTO
+﻿namespace FlightReservationSystem.DTO
 {
     /// <summary>
     /// Data Transfer Object (DTO) representing a flight booking.
@@ -18,6 +17,12 @@ namespace FlightReservationSystem.DTO
         /// Foreign key reference to the user account in the identity system.
         /// </summary>
         public string UserId { get; set; }
+
+        /// <summary>
+        /// The username of the user who made the booking.
+        /// Fetched from the associated user account.
+        /// </summary>
+        public string UserName { get; set; }
 
         /// <summary>
         /// Unique identifier for the booked flight.
